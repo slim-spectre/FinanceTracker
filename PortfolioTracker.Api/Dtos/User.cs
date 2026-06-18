@@ -10,5 +10,5 @@ public class User
     
     public int RoleId {get;set;} 
 
-    public required Role Role {get;set;}
+    public Role Role {get;set;}
 }
