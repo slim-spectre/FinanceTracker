@@ -3,6 +3,12 @@ using System.Text;
 
 public class RequestHandler
 {
+    private readonly FinanceDbContext _db;
+
+    public RequestHandler(FinanceDbContext db)
+    {
+        _db = db;
+    }
     public async Task ProcessRequestAsync(HttpListenerContext context)
     {
         Console.WriteLine(context.Request.HttpMethod);
