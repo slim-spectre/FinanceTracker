@@ -1,0 +1,14 @@
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\PortfolioTracker.Api.exe
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\PortfolioTracker.Api.deps.json
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\PortfolioTracker.Api.runtimeconfig.json
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\PortfolioTracker.Api.dll
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\PortfolioTracker.Api.pdb
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\PortfolioTracker.Api.GeneratedMSBuildEditorConfig.editorconfig
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\PortfolioTracker.Api.AssemblyInfoInputs.cache
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\PortfolioTracker.Api.AssemblyInfo.cs
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\PortfolioTracker.Api.csproj.CoreCompileInputs.cache
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\PortfolioTracker.Api.dll
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\refint\PortfolioTracker.Api.dll
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\PortfolioTracker.Api.pdb
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\PortfolioTracker.Api.genruntimeconfig.cache
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\ref\PortfolioTracker.Api.dll
