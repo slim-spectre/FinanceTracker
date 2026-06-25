@@ -113,3 +113,11 @@ D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\zh
 D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\PortfolioTracker.Api.csproj.AssemblyReference.cache
 D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\PortfolioTracker.Api.sourcelink.json
 D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\obj\Debug\net10.0\Portfoli.4E469A39.Up2Date
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\BCrypt-Net-Next.dll
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\FluentValidation.dll
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\Microsoft.Bcl.Cryptography.dll
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\Microsoft.IdentityModel.Abstractions.dll
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\Microsoft.IdentityModel.JsonWebTokens.dll
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\Microsoft.IdentityModel.Logging.dll
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\Microsoft.IdentityModel.Tokens.dll
+D:\Programming\projects\FinanceTracker\PortfolioTracker.Api\bin\Debug\net10.0\System.IdentityModel.Tokens.Jwt.dll

@@ -26,4 +26,29 @@ public class JwtHandler
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return tokenHandler.WriteToken(token);
     }
+
+    public ClaimsPrincipal? ValidateToken(string token)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes("SuperSecretSecureKey1234567890=======");
+
+        try
+        {
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false, 
+                ValidateAudience = false,
+                ClockSkew = TimeSpan.Zero 
+            };
+
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+            return principal;
+        }
+        catch
+        {
+            return null; // значить не валідний
+        }
+    }
 }

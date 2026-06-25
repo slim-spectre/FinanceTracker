@@ -1,8 +1,10 @@
 using System.Net;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 public class RequestHandler
 {
     private readonly FinanceDbContext _db;
@@ -26,6 +28,52 @@ public class RequestHandler
         response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
+
+       
+        if (context.Request.Url?.AbsolutePath == "/api/portfolio" && context.Request.HttpMethod == "GET")
+        {
+            try
+            {
+             
+                string? authHeader = context.Request.Headers["Authorization"];
+                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                {
+                    responseHandler.SendTextResponse(response, 401, "Unauthorized:gavno token");
+                    return;
+                }
+
+               
+                string token = authHeader.Substring(7);
+
+              
+                var principal = jwtHandler.ValidateToken(token);
+                if (principal == null)
+                {
+                    responseHandler.SendTextResponse(response, 401, "Unauthorizedd: very bad token man its old like my grand grand dad");
+                    return;
+                }
+
+                var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                {
+                    responseHandler.SendTextResponse(response, 400, "Bad Request: not that id of user in token maaaan");
+                    return;
+                }
+
+                var userPortfolio = await _db.Portfolios
+                    .Where(p => p.UserId == userId)
+                    .ToListAsync();
+
+                responseHandler.SendJsonResponse(response, 200, userPortfolio);
+                return;
+            }
+            catch (Exception ex)
+            {
+                responseHandler.SendTextResponse(response, 500, $"Internal Server Error: {ex.Message}");
+                return;
+            }
+        }
+        
         if (context.Request.HttpMethod == "OPTIONS")
         {
             response.StatusCode = 200;
