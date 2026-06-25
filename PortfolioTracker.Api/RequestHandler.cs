@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
-
 public class RequestHandler
 {
     private readonly FinanceDbContext _db;
@@ -18,6 +17,10 @@ public class RequestHandler
         Console.WriteLine($"{context.Request.HttpMethod} {context.Request.Url?.AbsolutePath} (Thread: {Environment.CurrentManagedThreadId})");
         
         HttpListenerResponse response = context.Response;
+        ResponseHandler responseHandler = new ResponseHandler();
+        var registerValidator = new RegisterValidator();
+        var loginValidator = new LoginValidator();
+        JwtHandler jwtHandler = new JwtHandler();
         
         response.Headers.Add("Access-Control-Allow-Origin", "*");
         response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -28,6 +31,61 @@ public class RequestHandler
             response.StatusCode = 200;
             response.Close();
             return; 
+        }
+
+        if(context.Request.Url?.AbsolutePath == "/api/login" && context.Request.HttpMethod == "POST")
+        {
+            try
+            {
+                using var reader = new StreamReader(context.Request.InputStream,context.Request.ContentEncoding);
+                string jsonBody = await reader.ReadToEndAsync();
+
+                var dto = JsonSerializer.Deserialize<LoginDto>(jsonBody,new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (dto == null)
+                {
+                    responseHandler.SendTextResponse(response,400,"Invalid JSON body");
+                    return;
+                }
+
+                ValidationResult validationResult = loginValidator.Validate(dto);
+                if (!validationResult.IsValid)
+                {
+                    var errors = validationResult.Errors.Select(e => e.ErrorMessage);
+                    responseHandler.SendJsonResponse(response, 400, errors);
+                    return;
+                }
+
+
+                var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(x => x.Login == dto.Login);
+                if(user == null)
+                {
+                    responseHandler.SendTextResponse(response,401,"Not correct login or passwords");
+                    return;
+                }
+
+                bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
+                if(isPasswordValid == false)
+                {
+                    responseHandler.SendTextResponse(response,401,"Not correct login or passwords");
+                    return;
+                }
+
+
+                var token = jwtHandler.GenerateJwtToken(user);
+                responseHandler.SendJsonResponse(response, 200, new {token = token});
+                return;
+
+
+            }
+            catch (Exception ex)
+            {
+                responseHandler.SendTextResponse(response, 500, $"I am a VERY stupid programmer sorry: {ex.Message}");
+                return;
+            }
         }
 
     
@@ -42,24 +100,23 @@ public class RequestHandler
                 
                 if (dto == null)
                 {
-                    SendTextResponse(response, 400, "Invalid JSON body");
+                    responseHandler.SendTextResponse(response, 400, "Invalid JSON body");
                     return;
                 }
 
-                var validator = new RegisterValidator();
-                ValidationResult validationResult = validator.Validate(dto);
+                ValidationResult validationResult = registerValidator.Validate(dto);
                 
                 if (!validationResult.IsValid)
                 {
                     var errors = validationResult.Errors.Select(e => e.ErrorMessage);
-                    SendJsonResponse(response, 400, errors);
+                    responseHandler.SendJsonResponse(response, 400, errors);
                     return;
                 }
 
                 bool isLoginTaken = await _db.Users.AnyAsync(x => x.Login == dto.Login);
                 if (isLoginTaken)
                 {
-                    SendTextResponse(response, 409, "User with this login already exist");
+                    responseHandler.SendTextResponse(response, 409, "User with this login already exist");
                     return;
                 }
 
@@ -78,36 +135,18 @@ public class RequestHandler
                 _db.Users.Add(newUser);
                 await _db.SaveChangesAsync();
 
-                SendTextResponse(response, 201, "Registered successfully!");
+                responseHandler.SendTextResponse(response, 201, "Registered successfully!");
                 return;
             }
             catch (Exception ex)
             {
-                SendTextResponse(response, 500, $"I am a stupid programmer sorry: {ex.Message}");
+                responseHandler.SendTextResponse(response, 500, $"I am a stupid programmer sorry: {ex.Message}");
                 return;
             }
         }
 
-        SendTextResponse(response, 200, "Hello from async C# server");
+        responseHandler.SendTextResponse(response, 200, "Hello from async C# server");
     }
 
-    private void SendTextResponse(HttpListenerResponse response, int statusCode, string message)
-    {
-        response.StatusCode = statusCode;
-        byte[] buffer = Encoding.UTF8.GetBytes(message);
-        response.ContentLength64 = buffer.Length;
-        response.OutputStream.Write(buffer, 0, buffer.Length);
-        response.Close();
-    }
-
-    private void SendJsonResponse(HttpListenerResponse response, int statusCode, object data)
-    {
-        response.StatusCode = statusCode;
-        response.ContentType = "application/json";
-        string json = JsonSerializer.Serialize(data);
-        byte[] buffer = Encoding.UTF8.GetBytes(json);
-        response.ContentLength64 = buffer.Length;
-        response.OutputStream.Write(buffer, 0, buffer.Length);
-        response.Close();
-    }
+    
 }
