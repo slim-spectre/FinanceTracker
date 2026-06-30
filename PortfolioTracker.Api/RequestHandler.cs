@@ -23,11 +23,152 @@ public class RequestHandler
         var registerValidator = new RegisterValidator();
         var loginValidator = new LoginValidator();
         var buyAssetValidator = new BuyAssetValidator();
+        var sellAssetValidator = new SellAssetValidator();
+
         JwtHandler jwtHandler = new JwtHandler();
         
         response.Headers.Add("Access-Control-Allow-Origin", "*");
         response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+        if(context.Request.Url?.AbsolutePath == "/api/transactions" 
+        && context.Request.HttpMethod == "GET")
+        {
+            try
+            {
+                string? authHeader = context.Request.Headers["Authorization"];
+                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                {
+                    responseHandler.SendTextResponse(response, 401, "Unauthorized:gavno token");
+                    return;
+                }
+
+               
+                string token = authHeader.Substring(7);
+
+              
+                var principal = jwtHandler.ValidateToken(token);
+                if (principal == null)
+                {
+                    responseHandler.SendTextResponse(response, 401, "Unauthorizedd: very bad token man its old like my grand grand dad");
+                    return;
+                }
+
+                var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                {
+                    responseHandler.SendTextResponse(response, 400, "Bad Request: not that id of user in token maaaan");
+                    return;
+                }
+
+                var transactions = await _db.Transactions
+                                .Where(x => x.UserId == userId)
+                                .OrderByDescending(x => x.Date)
+                                .ToListAsync();
+
+                responseHandler.SendJsonResponse(response, 200, new { Transactions = transactions });
+                return;
+
+            }
+            catch(Exception ex)
+            {
+                responseHandler.SendTextResponse(response, 500, $"Internal Server Error: {ex.Message}");
+                return;
+            }
+        }
+
+        if(context.Request.Url?.AbsolutePath == "/api/portfolio/sell"
+        && context.Request.HttpMethod == "POST")
+        {
+            try
+            {
+                string? authHeader = context.Request.Headers["Authorization"];
+                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                {
+                    responseHandler.SendTextResponse(response, 401, "Unauthorized:gavno token");
+                    return;
+                }
+
+               
+                string token = authHeader.Substring(7);
+
+              
+                var principal = jwtHandler.ValidateToken(token);
+                if (principal == null)
+                {
+                    responseHandler.SendTextResponse(response, 401, "Unauthorizedd: very bad token man its old like my grand grand dad");
+                    return;
+                }
+
+                var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                {
+                    responseHandler.SendTextResponse(response, 400, "Bad Request: not that id of user in token maaaan");
+                    return;
+                }
+
+
+                using var reader = new StreamReader(context.Request.InputStream,context.Request.ContentEncoding);
+                string jsonBody = await reader.ReadToEndAsync();
+
+                var dto = JsonSerializer.Deserialize<SellAssetDto>(jsonBody,new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (dto == null)
+                {
+                    responseHandler.SendTextResponse(response,400,"Invalid JSON body");
+                    return;
+                }
+
+                ValidationResult validationResult = sellAssetValidator.Validate(dto);
+                if (!validationResult.IsValid)
+                {
+                    var errors = validationResult.Errors.Select(e => e.ErrorMessage);
+                    responseHandler.SendJsonResponse(response, 400, errors);
+                    return;
+                }
+                var existingAsset = await _db.Portfolios.FirstOrDefaultAsync(x => x.UserId == userId && 
+                x.AssetId == dto.AssetId);
+                if(existingAsset == null || existingAsset.Quantity < dto.Quantity)
+                {
+                    responseHandler.SendJsonResponse(response,400,"Not exististing asset or not enough");
+                    return;
+                }
+                if(existingAsset.Quantity - dto.Quantity == 0)
+                {
+                    _db.Portfolios.Remove(existingAsset);
+                }
+                else
+                {
+                    existingAsset.Quantity -= dto.Quantity;
+                    existingAsset.TotalInvested = existingAsset.Quantity * existingAsset.AveragePrice;
+                }
+                var tx = new Transaction
+                {
+                    UserId = userId,
+                    AssetId = dto.AssetId,
+                    Type = TransactionType.Sell,
+                    Quantity = dto.Quantity,
+                    Price = dto.Price,
+                    TotalAmount = dto.Quantity * dto.Price,
+                    Date = DateTime.UtcNow,
+                    Fees = 0,
+                    Notes = "Sold via API"
+                };
+                _db.Transactions.Add(tx);
+                await _db.SaveChangesAsync();
+                responseHandler.SendJsonResponse(response, 200, new { message = "Asset was sooled successfully" });
+                return;
+
+            }
+            catch ( Exception ex)
+            {
+                responseHandler.SendTextResponse(response, 500, $"Internal Server Error: {ex.Message}");
+                return;
+            }
+        }
 
         if(context.Request.Url?.AbsolutePath == "/api/portfolio/buy" 
         && context.Request.HttpMethod == "POST")
@@ -101,6 +242,19 @@ public class RequestHandler
                     existingAsset.TotalInvested += (dto.Quantity * dto.Price);
                     existingAsset.AveragePrice = existingAsset.TotalInvested / existingAsset.Quantity;
                 }
+                var tx = new Transaction
+                {
+                    UserId = userId,
+                    AssetId = dto.AssetId,
+                    Type = TransactionType.Buy,
+                    Quantity = dto.Quantity,
+                    Price = dto.Price,
+                    TotalAmount = dto.Quantity * dto.Price,
+                    Date = DateTime.UtcNow,
+                    Fees = 0,
+                    Notes = "Bought via API"
+                };
+                _db.Transactions.Add(tx);
                 await _db.SaveChangesAsync();
                 responseHandler.SendJsonResponse(response, 200, new { message = "Asset was bought successfully" });
                 return;
