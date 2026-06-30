@@ -22,13 +22,96 @@ public class RequestHandler
         ResponseHandler responseHandler = new ResponseHandler();
         var registerValidator = new RegisterValidator();
         var loginValidator = new LoginValidator();
+        var buyAssetValidator = new BuyAssetValidator();
         JwtHandler jwtHandler = new JwtHandler();
         
         response.Headers.Add("Access-Control-Allow-Origin", "*");
         response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
+        if(context.Request.Url?.AbsolutePath == "/api/portfolio/buy" 
+        && context.Request.HttpMethod == "POST")
+        {
+            try
+            {
+                string? authHeader = context.Request.Headers["Authorization"];
+                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                {
+                    responseHandler.SendTextResponse(response, 401, "Unauthorized:gavno token");
+                    return;
+                }
 
+               
+                string token = authHeader.Substring(7);
+
+              
+                var principal = jwtHandler.ValidateToken(token);
+                if (principal == null)
+                {
+                    responseHandler.SendTextResponse(response, 401, "Unauthorizedd: very bad token man its old like my grand grand dad");
+                    return;
+                }
+
+                var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                {
+                    responseHandler.SendTextResponse(response, 400, "Bad Request: not that id of user in token maaaan");
+                    return;
+                }
+
+
+                using var reader = new StreamReader(context.Request.InputStream,context.Request.ContentEncoding);
+                string jsonBody = await reader.ReadToEndAsync();
+
+                var dto = JsonSerializer.Deserialize<BuyAssetDto>(jsonBody,new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (dto == null)
+                {
+                    responseHandler.SendTextResponse(response,400,"Invalid JSON body");
+                    return;
+                }
+
+                ValidationResult validationResult = buyAssetValidator.Validate(dto);
+                if (!validationResult.IsValid)
+                {
+                    var errors = validationResult.Errors.Select(e => e.ErrorMessage);
+                    responseHandler.SendJsonResponse(response, 400, errors);
+                    return;
+                }
+                var existingAsset = await _db.Portfolios
+                .FirstOrDefaultAsync(p => p.UserId == userId && p.AssetId == dto.AssetId);
+                if(existingAsset == null)
+                {
+                    var newPortfolioItem = new Portfolio
+                    {
+                        UserId = userId,
+                        AssetId = dto.AssetId,
+                        Quantity = dto.Quantity,
+                        AveragePrice = dto.Price,
+                        TotalInvested = dto.Quantity * dto.Price
+                    };
+                    _db.Portfolios.Add(newPortfolioItem);
+                }
+                else
+                {
+                    existingAsset.Quantity += dto.Quantity;
+                    existingAsset.TotalInvested += (dto.Quantity * dto.Price);
+                    existingAsset.AveragePrice = existingAsset.TotalInvested / existingAsset.Quantity;
+                }
+                await _db.SaveChangesAsync();
+                responseHandler.SendJsonResponse(response, 200, new { message = "Asset was bought successfully" });
+                return;
+
+
+            }catch (Exception ex)
+            {
+                responseHandler.SendTextResponse(response, 500, $"Internal Server Error: {ex.Message}");
+                return;
+            }
+        }
        
         if (context.Request.Url?.AbsolutePath == "/api/portfolio" && context.Request.HttpMethod == "GET")
         {
