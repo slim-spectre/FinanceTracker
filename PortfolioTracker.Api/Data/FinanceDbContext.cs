@@ -10,6 +10,8 @@ public class FinanceDbContext : DbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<WatchlistAsset> WatchlistAssets => Set<WatchlistAsset>();
 
+    public DbSet<AssetMarketPrice> MarketPrices => Set<AssetMarketPrice>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -22,6 +24,10 @@ public class FinanceDbContext : DbContext
         modelBuilder.Entity<Role>().HasData(
             new Role {Id = 1, Name = "Admin"},
             new Role {Id = 2, Name = "User"}
+        );
+        modelBuilder.Entity<AssetMarketPrice>().HasData(
+            new AssetMarketPrice {Id = 1,AssetId = 1,CurrentPrice = 250,Name = "Bitcoin",Ticker = "BTC"},
+            new AssetMarketPrice {Id = 2,AssetId = 2,CurrentPrice = 6800,Name = "Eutherium",Ticker = "EUT"}
         );
     }
 

@@ -31,6 +31,32 @@ public class RequestHandler
         response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
+        if(context.Request.Url?.AbsolutePath == "/api/assets" && context.Request.HttpMethod == "GET")
+        {
+            try
+            {
+                var assetPrices = await _db.MarketPrices.OrderBy(x => x.Ticker).ToListAsync();
+
+                var result = assetPrices.Select(a => new
+                {
+                    Id = a.Id,
+                    AssetId = a.AssetId,
+                    Ticker = a.Ticker,   
+                    Name = a.Name,       
+                    CurrentPrice = a.CurrentPrice, 
+                    LastUpdated = a.LastUpdated
+                });
+
+                responseHandler.SendJsonResponse(response,200,new {assets = result});
+                return;
+            }
+            catch(Exception ex)
+            {
+                responseHandler.SendTextResponse(response, 500, $"Internal Server Error: {ex.Message}");
+                return;
+            }
+        }
+
         if(context.Request.Url?.AbsolutePath == "/api/transactions" 
         && context.Request.HttpMethod == "GET")
         {
@@ -129,6 +155,13 @@ public class RequestHandler
                     responseHandler.SendJsonResponse(response, 400, errors);
                     return;
                 }
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if(user == null)
+                {
+                    responseHandler.SendTextResponse(response,400,"liar");
+                    return;
+                }
+                
                 var existingAsset = await _db.Portfolios.FirstOrDefaultAsync(x => x.UserId == userId && 
                 x.AssetId == dto.AssetId);
                 if(existingAsset == null || existingAsset.Quantity < dto.Quantity)
@@ -136,6 +169,9 @@ public class RequestHandler
                     responseHandler.SendJsonResponse(response,400,"Not exististing asset or not enough");
                     return;
                 }
+                var revenue = dto.Quantity * dto.Price;
+                user.Balance += revenue;
+                decimal profitOrLoss = (dto.Price - existingAsset.AveragePrice) * dto.Quantity;
                 if(existingAsset.Quantity - dto.Quantity == 0)
                 {
                     _db.Portfolios.Remove(existingAsset);
@@ -155,7 +191,7 @@ public class RequestHandler
                     TotalAmount = dto.Quantity * dto.Price,
                     Date = DateTime.UtcNow,
                     Fees = 0,
-                    Notes = "Sold via API"
+                    Notes = $"Sold via API. Realized Profit/Loss: {profitOrLoss}$"
                 };
                 _db.Transactions.Add(tx);
                 await _db.SaveChangesAsync();
@@ -222,6 +258,19 @@ public class RequestHandler
                     responseHandler.SendJsonResponse(response, 400, errors);
                     return;
                 }
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if(user == null)
+                {
+                    responseHandler.SendTextResponse(response, 400, "you are not you motherfucker");
+                    return;
+                }
+                var totalCost = dto.Quantity * dto.Price;
+                if(user.Balance < totalCost)
+                {
+                    responseHandler.SendTextResponse(response, 400, "Not enough money, go to work bro");
+                    return;
+                }
+                user.Balance -= totalCost;
                 var existingAsset = await _db.Portfolios
                 .FirstOrDefaultAsync(p => p.UserId == userId && p.AssetId == dto.AssetId);
                 if(existingAsset == null)
@@ -297,12 +346,59 @@ public class RequestHandler
                     return;
                 }
 
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
                 var userPortfolio = await _db.Portfolios
                     .Where(p => p.UserId == userId)
                     .ToListAsync();
+                var pricesDict = await _db.MarketPrices.ToDictionaryAsync(x => x.AssetId, x => x.CurrentPrice);
 
-                responseHandler.SendJsonResponse(response, 200, userPortfolio);
-                return;
+                decimal totalPortfolioValue = 0;
+                decimal totalInvested = 0;
+                var assetsResult = new List<object>();
+
+
+
+                foreach (var item in userPortfolio)
+                {
+                    decimal currentPrice = pricesDict.TryGetValue(item.AssetId, out var price) ? price : item.AveragePrice;
+
+                    decimal currentValue = item.Quantity * currentPrice;
+                    decimal unrealizedPnL = (currentPrice - item.AveragePrice) * item.Quantity;
+                    
+                    decimal roiPercentage = item.AveragePrice > 0 
+                        ? ((currentPrice - item.AveragePrice) / item.AveragePrice) * 100 
+                        : 0;
+
+                    
+                    totalPortfolioValue += currentValue;
+                    totalInvested += item.TotalInvested;
+
+                    assetsResult.Add(new
+                    {
+                        AssetId = item.AssetId,
+                        Quantity = item.Quantity,
+                        AveragePrice = item.AveragePrice,
+                        CurrentPrice = currentPrice,
+                        CurrentValue = currentValue,
+                        UnrealizedPnL = unrealizedPnL,
+                        RoiPercentage = Math.Round(roiPercentage, 2)
+                });
+            }
+            decimal cashBalance = user?.Balance ?? 0;
+            decimal netWorth = cashBalance + totalPortfolioValue;
+            decimal totalUnrealizedPnL = totalPortfolioValue - totalInvested;
+
+            var responseObj = new
+            {
+                NetWorth = netWorth,
+                CashBalance = cashBalance,
+                TotalPortfolioValue = totalPortfolioValue,
+                TotalUnrealizedPnL = totalUnrealizedPnL,
+                Assets = assetsResult
+            };
+            responseHandler.SendJsonResponse(response, 200, responseObj);
+            return;
             }
             catch (Exception ex)
             {

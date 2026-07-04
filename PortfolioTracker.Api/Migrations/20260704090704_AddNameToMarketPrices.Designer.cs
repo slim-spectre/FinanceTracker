@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -10,9 +11,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace PortfolioTracker.Api.Migrations
 {
     [DbContext(typeof(FinanceDbContext))]
-    partial class FinanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260704090704_AddNameToMarketPrices")]
+    partial class AddNameToMarketPrices
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -76,7 +79,7 @@ namespace PortfolioTracker.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Ticker")
+                    b.Property<string>("Ticket")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -92,7 +95,7 @@ namespace PortfolioTracker.Api.Migrations
                             CurrentPrice = 250m,
                             LastUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Bitcoin",
-                            Ticker = "BTC"
+                            Ticket = "BTC"
                         },
                         new
                         {
@@ -101,7 +104,7 @@ namespace PortfolioTracker.Api.Migrations
                             CurrentPrice = 6800m,
                             LastUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Eutherium",
-                            Ticker = "EUT"
+                            Ticket = "EUT"
                         });
                 });
 

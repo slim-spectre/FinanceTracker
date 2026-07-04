@@ -9,6 +9,7 @@ public class User
     public DateTime CreatedAt {get;set;} 
     
     public int RoleId {get;set;} 
+    public decimal Balance { get; set; } = 10000; 
 
     public Role Role {get;set;}
 }
