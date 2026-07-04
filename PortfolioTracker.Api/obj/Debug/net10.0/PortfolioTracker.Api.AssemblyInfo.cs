@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PortfolioTracker.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d61760d49b7b7e0f76a243bcb31e2fe71cae1091")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+14827ad4c570e9fac4fb11f4913448449e3ae456")]
 [assembly: System.Reflection.AssemblyProductAttribute("PortfolioTracker.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PortfolioTracker.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
