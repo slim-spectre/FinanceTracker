@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useEffect } from "react";
 import FetchMarketAssets from "../services/apiService"
-import { type Asset } from "../types/asset";
+import { type Asset } from "../types/Asset";
 
 
 function MarketPage() {

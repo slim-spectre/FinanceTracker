@@ -1,4 +1,4 @@
-import { type Asset } from "../types/asset";
+import { type Asset } from "../types/Asset";
 
 const fetchMarketAssets = async () : Promise<Asset[]> => {
   try{
