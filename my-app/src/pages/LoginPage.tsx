@@ -1,13 +1,14 @@
 import React, { useState } from "react"
 import { loginUser } from '../services/authService'
-import { validateEmail, validatePassword } from "../utils/validation"
+import { validateLogin, validatePassword } from "../utils/validation"
 import { type LoginCredentials } from "../types/Auth"
 import { toast } from 'react-hot-toast'
+import { type ILoginProps } from "../types/ILoginProps"
 
-function LoginPage() {
-  const [email, setEmail] = useState<string>("");
+function LoginPage({onLoginSuccess} : ILoginProps) {
+  const [login, setLogin] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [emailError, setEmailError] = useState<string>("");
+  const [loginError, setLoginError] = useState<string>("");
   const [passwordError, setPasswordError] = useState<string>("");
   const [backendError, setBackendError] = useState<string>("");
 
@@ -17,17 +18,18 @@ function LoginPage() {
       e.preventDefault();
       
       
-      if (emailError || passwordError || !email || !password) {
+      if (loginError || passwordError || !login || !password) {
         toast.error("Please fix validation errors first");
         return;
       }
 
-      const credentials: LoginCredentials = { email, password };
+      const credentials: LoginCredentials = { login, password };
       
       
       await loginUser(credentials); 
       
       toast.success("Logged in successfully!");
+      onLoginSuccess();
       setBackendError(""); 
     } catch (error: any) {
       toast.error(error.message || "Network error, please try again later");
@@ -35,10 +37,10 @@ function LoginPage() {
     }
   }
 
-  const handleEmail = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogin = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setEmail(value);
-    setEmailError(validateEmail(value, "Not correct form of email"));
+    setLogin(value);
+    setLoginError(validateLogin(value, "Not correct form of email"));
   }
 
   const handlePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,8 +51,8 @@ function LoginPage() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <input type="email" value={email} onChange={handleEmail} placeholder="Email" />
-      {emailError && <span>{emailError}</span>}
+      <input type="text" value={login} onChange={handleLogin} placeholder="Login" />
+      {loginError && <span>{loginError}</span>}
       
       <input type="password" value={password} onChange={handlePassword} placeholder="Password" />
       {passwordError && <span>{passwordError}</span>}

@@ -6,15 +6,15 @@ import { type Asset } from "../types/Asset";
 
 function MarketPage() {
 
-  const [assets,setAssets] = useState<Asset[]>([]);
+  const [marketAssets,setMarketAssets] = useState<Asset[]>([]);
   const [isDownoading,setIsDownloading] = useState<boolean>(true);
-  const [Error,setError] = useState<string>("");
+  const [error,setError] = useState<string>("");
 
   useEffect(() => {
     const loadData = async ()  => {
         try{
           const funcResult = await FetchMarketAssets();
-          setAssets(funcResult);
+          setMarketAssets(funcResult);
         }catch(ex){
           setError(`${ex}`);
         }finally {
@@ -29,8 +29,8 @@ function MarketPage() {
     <div>
    {isDownoading ? (
     <div>Downloading of assets</div>
-   ) : Error ? (
-    <div className="">Error :{Error}</div>
+   ) : error ? (
+    <div className="">Error :{error}</div>
    ) : (
     <table>
       <thead>
@@ -42,7 +42,7 @@ function MarketPage() {
         </tr>
       </thead>
       <tbody>
-        {assets.map((item) => (
+        {marketAssets.map((item) => (
           <tr key={item.assetId}>
             <td>{item.name}</td>
             <td>{item.ticker}</td>

@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 
 
 export const loginUser = async (credentials:LoginCredentials) => {
-  const response = await fetch("/api/auth/login",{
+  const response = await fetch("/api/login",{
     method:"POST",
     headers: {
       'Content-Type' : 'application/json',
@@ -15,7 +15,9 @@ export const loginUser = async (credentials:LoginCredentials) => {
     toast.error(errorData.message || "Invalid password or email");
     throw new Error(errorData.message || "Invalid credentials"); 
   }
-  const token = await response.text();
-  localStorage.setItem('token',token);
-  return token;
+  const data = await response.json();
+  const tokenString = data.token;
+
+  localStorage.setItem('token',tokenString);
+  return tokenString;
 }

@@ -1,6 +1,6 @@
-export const validateEmail = (email: string, emailErrorMsg : string): string => {
-    if (!email || email.trim().length < 15 || !email.includes("@gmail.com")){
-        return emailErrorMsg;
+export const validateLogin = (login: string, loginErrorMsg : string): string => {
+    if (!login || login.trim().length < 8){
+        return loginErrorMsg;
     }
     return "";
 }
