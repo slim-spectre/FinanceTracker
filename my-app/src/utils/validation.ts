@@ -10,3 +10,27 @@ export const validatePassword = (password: string,passwordErrorMsg: string): str
     }
     return "";
 }
+export const validateFullName = (fullName: string,fullNameErrorMsg : string) : string => {
+  if (!fullName || fullName.trim().length < 2){
+    return fullNameErrorMsg;
+  }
+  return "";
+}
+export const validateAssetId = (assetId : number,assetIdErrorMsg : string) : string => {
+  if(!assetId || assetId <= 0){
+    return assetIdErrorMsg
+  }
+  return "";
+}
+export const validateQuantity = (quantity : number,quantityErrorMsg : string) : string => {
+  if(!quantity || quantity <= 0){
+    return quantityErrorMsg
+  }
+  return "";
+}
+export const validatePrice = (price : number,priceErrorMsg : string) : string => {
+  if(!price || price <= 0){
+    return priceErrorMsg
+  }
+  return "";
+}

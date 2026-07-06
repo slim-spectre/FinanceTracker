@@ -1,17 +1,18 @@
 import React, { useState } from "react"
-import { loginUser } from '../services/authService'
-import { validateLogin, validatePassword } from "../utils/validation"
-import { type LoginCredentials } from "../types/Auth"
+import { registerUser } from '../services/authService'
+import { validateFullName, validateLogin, validatePassword } from "../utils/validation"
+import { type RegisterCredentials } from "../types/Auth"
 import { toast } from 'react-hot-toast'
-import { type ILoginProps } from "../types/ILoginProps"
 import { useNavigate } from "react-router-dom";
 
 
-function LoginPage({onLoginSuccess} : ILoginProps) {
+function RegisterPage() {
   const [login, setLogin] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [fullName,setFullName] = useState<string>("");
   const [loginError, setLoginError] = useState<string>("");
   const [passwordError, setPasswordError] = useState<string>("");
+  const [fullNameError, setFullNameError] = useState<string>("");
   const [backendError, setBackendError] = useState<string>("");
   const navigate = useNavigate();
   
@@ -23,22 +24,23 @@ function LoginPage({onLoginSuccess} : ILoginProps) {
 
       const currentLoginError = validateLogin(login, "Not correct form of email");
       const currentPasswordError = validatePassword(password, "Not correct form of password");
+      const currentFullNameError = validateFullName(fullName,"Not correct form of fullName")
       setLoginError(currentLoginError);
       setPasswordError(currentPasswordError);
+      setFullNameError(currentFullNameError)
 
-      if (currentLoginError || currentPasswordError || !login || !password) {
+      if (currentLoginError || currentPasswordError || currentFullNameError || !login || !password || !fullName) {
         toast.error("Please fix validation errors first");
         return;
       }
 
-      const credentials: LoginCredentials = { login, password };
+      const credentials: RegisterCredentials  = { login, password,fullName };
       
       
-      await loginUser(credentials); 
+      await registerUser(credentials); 
       
-      toast.success("Logged in successfully!");
-      onLoginSuccess();
-      navigate("/portfolio");
+      toast.success("Registered in successfully!");
+      navigate("/login");
       setBackendError(""); 
     } catch (error: any) {
       toast.error(error.message || "Network error, please try again later");
@@ -49,13 +51,19 @@ function LoginPage({onLoginSuccess} : ILoginProps) {
   const handleLogin = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setLogin(value);
-    setLoginError(validateLogin(value, "Not correct form of email"));
+    setLoginError(validateLogin(value, "Not correct form of login"));
   }
 
   const handlePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPassword(value);
     setPasswordError(validatePassword(value, "Not correct form of password"));
+  }
+
+  const handleFullName = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFullName(value);
+    setFullNameError(validateFullName(value, "Not correct form of fullName"));
   }
 
   return (
@@ -65,11 +73,15 @@ function LoginPage({onLoginSuccess} : ILoginProps) {
       
       <input type="password" value={password} onChange={handlePassword} placeholder="Password" />
       {passwordError && <span>{passwordError}</span>}
+
+      <input type="text" value={fullName} onChange={handleFullName} placeholder="Full Name" />
+      {fullNameError && <span>{fullNameError}</span>}
       
       {backendError && <span style={{ color: 'red' }}>{backendError}</span>}
-      <button type="submit">Sign in</button>
+      <button type="submit">Sign up</button>
+      <button onClick={() => navigate('/login')}>Already have an account?</button>
     </form>
   );
 }
 
-export default LoginPage;
+export default RegisterPage;

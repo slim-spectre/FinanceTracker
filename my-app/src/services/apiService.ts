@@ -1,6 +1,6 @@
 import { type Asset } from "../types/Asset";
 
-const fetchMarketAssets = async () : Promise<Asset[]> => {
+const fetchMarketAssets = async () => {
   try{
     const response = await fetch("/api/assets");
 
@@ -8,7 +8,7 @@ const fetchMarketAssets = async () : Promise<Asset[]> => {
       throw new Error(`Http Error!Status code : ${response.status}`)
     }
 
-    const data = await response.json() as Asset[];
+    const data = await response.json() as {assets : Asset[]};
     return data;
 
   }catch(ex){

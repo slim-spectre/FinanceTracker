@@ -14,7 +14,7 @@ function MarketPage() {
     const loadData = async ()  => {
         try{
           const funcResult = await FetchMarketAssets();
-          setMarketAssets(funcResult);
+          setMarketAssets(funcResult.assets  || []);
         }catch(ex){
           setError(`${ex}`);
         }finally {
@@ -43,11 +43,11 @@ function MarketPage() {
       </thead>
       <tbody>
         {marketAssets.map((item) => (
-          <tr key={item.assetId}>
-            <td>{item.name}</td>
-            <td>{item.ticker}</td>
-            <td>{item.currentPrice}</td>
-            <td>{new Date(item.lastUpdated).toLocaleDateString()}</td>
+          <tr key={item.AssetId}>
+            <td>{item.Name}</td>
+            <td>{item.Ticker}</td>
+            <td>{item.CurrentPrice}</td>
+            <td>{new Date(item.LastUpdated).toLocaleDateString()}</td>
           </tr>
         ))}
       </tbody>

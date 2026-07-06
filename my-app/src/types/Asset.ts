@@ -1,8 +1,8 @@
 export interface Asset {
   id : number,
-  assetId : number,
-  ticker : string,
-  name : string,
-  currentPrice : number,
-  lastUpdated : Date
+  AssetId : number,
+  Ticker : string,
+  Name : string,
+  CurrentPrice : number,
+  LastUpdated : Date
 }

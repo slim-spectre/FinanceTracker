@@ -1,69 +1,75 @@
-import { useState } from "react"
-import { useEffect } from "react";
-import fetchUserPortfolio from '../services/portfolioService'
-
-import type { Portfolio } from "../types/Portfolio";
-
+import { useState, useEffect } from "react";
+import fetchUserPortfolio from "../services/portfolioService";
+import AddAssetForm from "../components/AddAssetForm";
 
 function PortfolioPage() {
+  const [portfolioData, setPortfolioData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
 
-  const [portfolioAssets,setPortfolioAssets] = useState<Portfolio[]>([]);
-  const [isDownoading,setIsDownloading] = useState<boolean>(true);
-  const [error,setError] = useState<string>("");
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const data = await fetchUserPortfolio();
+      setPortfolioData(data);
+    } catch (ex) {
+      setError(`${ex}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadData = async ()  => {
-        try{
-          const funcResult = await fetchUserPortfolio();
-          setPortfolioAssets(funcResult.Assets || []);
-        }catch(ex){
-          setError(`${ex}`);
-        }finally {
-          setIsDownloading(false);
-        }
-      };
+    loadData();
+  }, []);
 
-    loadData(); 
-    },[]);
+  if (isLoading) return <div>Loading portfolio...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
-    <div>
-   {isDownoading ? (
-    <div>Downloading of assets</div>
-   ) : error ? (
-    <div className="">Error :{error}</div>
-   ) : (
-    <table>
-      <thead>
-        <tr>
-          <th>Ticker</th> 
-          <th>Quantity</th>
-          <th>Average price</th>
-          <th>Total invested</th>
-        </tr>
-      </thead>
-      <tbody>
-        {Array.isArray(portfolioAssets) ? (
-          portfolioAssets.map((item) => (
-            <tr key={item.assetId}>
-              <td>{item.ticker}</td>
-              <td>{item.quantity}</td>
-              <td>{item.averagePrice}</td>
-              <td>{item.totalInvested}</td>
-            </tr>
-          ))
-        ) : (
+    <div className="portfolio-container">
+      <h2>My invest portfolio</h2>
+      
+      <div style={{ marginBottom: "20px", background: "#f9f9f9", padding: "15px" }}>
+        <p><strong>General balance (NetWorth):</strong> ${portfolioData?.NetWorth}</p>
+        <p><strong>Available money (CashBalance):</strong> ${portfolioData?.CashBalance}</p>
+      </div>
+
+      ---
+
+      <div style={{ marginBottom: "30px", padding: "15px", border: "1px solid #ccc" }}>
+        <h3>Buy new Asset</h3>
+        <AddAssetForm onAssetBought={loadData} />
+      </div>
+
+      ---
+
+      <table>
+        <thead>
           <tr>
-            <td colSpan={4} style={{ textAlign: 'center', padding: '20px' }}>
-              Не вдалося завантажити дані або доступ заборонено 🔒
-            </td>
+            <th>Asset ID</th>
+            <th>Кількість</th>
+            <th>Середня ціна</th>
+            <th>Поточна ціна</th>
+            <th>Прибуток/Збиток</th>
           </tr>
-        )}
-      </tbody>
-    </table>
-   )} 
-   </div>
-  )
+        </thead>
+        <tbody>
+          {portfolioData?.Assets?.map((item: any) => (
+            <tr key={item.AssetId}>
+              <td>{item.AssetId}</td>
+              <td>{item.Quantity}</td>
+              <td>${item.AveragePrice}</td>
+              <td>${item.CurrentPrice}</td>
+              <td style={{ color: item.UnrealizedPnL >= 0 ? "green" : "red" }}>
+                ${item.UnrealizedPnL.toFixed(2)} ({item.RoiPercentage}%)
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
-export default PortfolioPage
+export default PortfolioPage;
