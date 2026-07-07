@@ -13,26 +13,38 @@ function App() {
 
   return (
     <Router>
-      <div style={{ minHeight: "100vh", fontFamily: "sans-serif" }}>
+      <div className="min-h-screen bg-gray-50 text-gray-900 font-sans antialiased">
         {isAuthenticated && (
-          <nav style={{ padding: "10px 20px", background: "#eee", display: "flex", gap: "15px" }}>
-            <Link to="/portfolio">Портфоліо</Link>
-            <Link to="/market">Маркет</Link>
+          <nav className="sticky top-0 z-40 bg-white border-b border-gray-200/80 shadow-sm px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <Link to="/portfolio" className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                Портфоліо
+              </Link>
+              <Link to="/market" className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                Маркет
+              </Link>
+            </div>
             
-            <button onClick={() => { localStorage.clear(); setIsAuthenticated(false); }}>Вийти</button>
+            <button 
+              onClick={() => { localStorage.clear(); setIsAuthenticated(false); }}
+              className="text-sm font-medium text-gray-500 hover:text-rose-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-rose-50"
+            >
+              Вийти
+            </button>
           </nav>
         )}
 
-        <main style={{ padding: "20px" }}>
-          <Toaster />
+        <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <Toaster position="top-right" />
           <Routes> 
             <Route 
               path="/login" 
               element={isAuthenticated ? <Navigate to="/portfolio"/> : <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />} 
             />
             <Route
-             path="/register"
-              element={isAuthenticated ? <Navigate to="/portfolio" /> : <RegisterPage />} />
+              path="/register"
+              element={isAuthenticated ? <Navigate to="/portfolio" /> : <RegisterPage />} 
+            />
             <Route 
               path="/portfolio" 
               element={isAuthenticated ? <PortfolioPage /> : <Navigate to="/register" />} 

@@ -28,6 +28,12 @@ export const validateQuantity = (quantity : number,quantityErrorMsg : string) : 
   }
   return "";
 }
+export const validateSellQuantity = (quantity : number,maxQuantity : number,quantityErrorMsg : string) : string => {
+  if(!quantity || quantity <= 0 || quantity > maxQuantity){
+    return quantityErrorMsg
+  }
+  return "";
+}
 export const validatePrice = (price : number,priceErrorMsg : string) : string => {
   if(!price || price <= 0){
     return priceErrorMsg
