@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 public class FinanceDbContext : DbContext
 {
@@ -15,7 +16,15 @@ public class FinanceDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
-        optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=portfolio_db;Username=postgres;Password=26030891");
+
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json")
+            .Build();
+
+        
+        string connectionString = configuration.GetConnectionString("DefaultConnection");
+        optionsBuilder.UseNpgsql(connectionString);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -24,10 +33,6 @@ public class FinanceDbContext : DbContext
         modelBuilder.Entity<Role>().HasData(
             new Role {Id = 1, Name = "Admin"},
             new Role {Id = 2, Name = "User"}
-        );
-        modelBuilder.Entity<AssetMarketPrice>().HasData(
-            new AssetMarketPrice {Id = 1,AssetId = 1,CurrentPrice = 250,Name = "Bitcoin",Ticker = "BTC"},
-            new AssetMarketPrice {Id = 2,AssetId = 2,CurrentPrice = 6800,Name = "Eutherium",Ticker = "EUT"}
         );
     }
 

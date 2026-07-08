@@ -245,6 +245,8 @@ public class RequestHandler
                     PropertyNameCaseInsensitive = true
                 });
 
+
+
                 if (dto == null)
                 {
                     responseHandler.SendTextResponse(response,400,"Invalid JSON body");
@@ -258,6 +260,8 @@ public class RequestHandler
                     responseHandler.SendJsonResponse(response, 400, errors);
                     return;
                 }
+
+                
                 var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
                 if(user == null)
                 {
