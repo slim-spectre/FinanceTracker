@@ -1,6 +1,6 @@
 import { type Asset } from "../types/Asset";
 
-const fetchMarketAssets = async () => {
+const fetchMarketAssets = async ()  => {
   try{
     const response = await fetch("/api/assets");
 

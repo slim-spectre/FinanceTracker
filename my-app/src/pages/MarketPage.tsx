@@ -8,16 +8,16 @@ function MarketPage() {
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    const loadData = async ()  => {
-        try{
-          const funcResult = await FetchMarketAssets();
-          setMarketAssets(funcResult.assets  || []);
-        }catch(ex){
-          setError(`${ex}`);
-        }finally {
-          setIsDownloading(false);
-        }
-      };
+    const loadData = async () => {
+      try {
+        const funcResult = await FetchMarketAssets();
+        setMarketAssets(funcResult.assets || []);
+      } catch (ex) {
+        setError(`${ex}`);
+      } finally {
+        setIsDownloading(false);
+      }
+    };
     loadData(); 
   }, []);
 
@@ -41,20 +41,54 @@ function MarketPage() {
                   <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Name</th>
                   <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Ticker</th>
                   <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Current Price</th>
+                  <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">24h Change</th>
                   <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Last Updated</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {marketAssets.map((item) => (
                   <tr key={item.AssetId} className="hover:bg-gray-50/60 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-gray-900">{item.Name}</td>
-                    <td className="px-6 py-4 text-gray-500 font-medium">
-                      <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg text-xs uppercase">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={item.CoinIcon} 
+                          className="w-6 h-6 rounded-full object-contain bg-gray-50" 
+                          alt={item.Name} 
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://placeholder.co/24";
+                          }}
+                        /> 
+                        <div className="font-semibold text-slate-900 tracking-wide">
+                          {item.Name}
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="py-4 px-6 font-mono font-medium text-gray-600">
+                      <span className="bg-gray-100 px-2 py-1 rounded text-xs uppercase">
                         {item.Ticker}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-900 font-semibold">${item.CurrentPrice?.toLocaleString()}</td>
-                    <td className="px-6 py-4 text-gray-500">{new Date(item.LastUpdated).toLocaleDateString()}</td>
+
+                    <td className="px-6 py-4 text-gray-900 font-semibold">
+                      ${item.CurrentPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                    </td>
+
+                    <td className="py-4 px-6 font-mono font-medium">
+                      {(() => {
+                        const change = item.PriceChangePercentage24h ?? 0;
+                        const isPositive = change >= 0;
+                        return (
+                          <span className={isPositive ? "text-emerald-600" : "text-rose-600"}>
+                            {isPositive ? "▲ +" : "▼ "}{change.toFixed(2)}%
+                          </span>
+                        );
+                      })()}
+                    </td>
+
+                    <td className="px-6 py-4 text-gray-500">
+                      {item.LastUpdated ? new Date(item.LastUpdated).toLocaleDateString() : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

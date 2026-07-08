@@ -4,5 +4,7 @@ export interface Asset {
   Ticker : string,
   Name : string,
   CurrentPrice : number,
-  LastUpdated : Date
+  LastUpdated : Date,
+  CoinIcon : string,
+  PriceChangePercentage24h : number,
 }

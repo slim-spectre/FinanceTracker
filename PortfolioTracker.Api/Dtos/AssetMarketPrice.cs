@@ -9,4 +9,8 @@ public class AssetMarketPrice
     public DateTime LastUpdated {get;set;}
 
     public string Name {get;set;} = string.Empty;
+
+    public string CoinIcon { get; set; } = string.Empty; 
+    public decimal PriceChangePercentage24h { get; set; } 
+
 }

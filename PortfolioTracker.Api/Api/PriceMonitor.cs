@@ -51,23 +51,6 @@ public class PriceMonitor
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
-                try
-                {
-                    using var scope = _serviceProvider.CreateScope();
-                    var db = scope.ServiceProvider.GetRequiredService<FinanceDbContext>();
-                    
-                    var fakeData = new List<CoinMarketData>
-                    {
-                        new() { Ticker = "btc", Name = "Bitcoin (Test)", CurrentPrice = 65000 },
-                        new() { Ticker = "eth", Name = "Ethereum (Test)", CurrentPrice = 3500 }
-                    };
-
-                    await SyncDatabase(db, fakeData);
-                }
-                catch (Exception dbEx)
-                {
-                    Console.WriteLine($"Critical error: {dbEx.Message}");
-                }
             }
 
             await Task.Delay(TimeSpan.FromMinutes(5)); 
@@ -93,6 +76,9 @@ public class PriceMonitor
                 dbPrice.CurrentPrice = coin.CurrentPrice;
                 dbPrice.LastUpdated = DateTime.UtcNow;
                 dbPrice.Name = coin.Name;
+                dbPrice.CoinIcon = coin.CoinIcon;
+                dbPrice.PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent;
+
                 updatedCount++;
             }
             else
@@ -104,7 +90,9 @@ public class PriceMonitor
                     Ticker = coin.Ticker.ToUpper(),
                     Name = coin.Name,
                     CurrentPrice = coin.CurrentPrice,
-                    LastUpdated = DateTime.UtcNow
+                    LastUpdated = DateTime.UtcNow,
+                    CoinIcon = coin.CoinIcon,
+                    PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent
                 };
 
                 await db.MarketPrices.AddAsync(newAssetPrice);

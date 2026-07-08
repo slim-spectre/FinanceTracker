@@ -82,7 +82,28 @@ function PortfolioPage() {
             <tbody className="divide-y divide-gray-100 bg-white"> 
               {portfolioData?.Assets?.map((item: any) => (
                 <tr key={item.AssetId} className="hover:bg-gray-50/60 transition-colors">
-                  <td className="px-6 py-4 font-semibold text-gray-900">#{item.AssetId}</td>
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={item.CoinIcon || item.coinIcon} 
+                        className="w-6 h-6 rounded-full object-contain bg-gray-50" 
+                        alt="" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://placeholder.co/24";
+                        }}
+                      /> 
+                      <div>
+                        
+                        <div className="font-semibold text-slate-900 tracking-wide uppercase">
+                          {item.AssetTicker || item.assetTicker || `ID: ${item.AssetId || item.assetId}`}
+                        </div>
+
+                        <div className="text-xs text-slate-400">
+                          {item.AssetName || item.assetName || "Crypto Asset"}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-gray-600">{item.Quantity}</td>
                   <td className="px-6 py-4 text-gray-600">${item.AveragePrice}</td>
                   <td className="px-6 py-4 text-gray-600">${item.CurrentPrice}</td>

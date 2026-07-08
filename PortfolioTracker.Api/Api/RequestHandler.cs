@@ -44,7 +44,9 @@ public class RequestHandler
                     Ticker = a.Ticker,   
                     Name = a.Name,       
                     CurrentPrice = a.CurrentPrice, 
-                    LastUpdated = a.LastUpdated
+                    LastUpdated = a.LastUpdated,
+                    CoinIcon = a.CoinIcon,
+                    PriceChangePercentage24h = a.PriceChangePercentage24h
                 });
 
                 responseHandler.SendJsonResponse(response,200,new {assets = result});
@@ -87,12 +89,31 @@ public class RequestHandler
                     return;
                 }
 
-                var transactions = await _db.Transactions
-                                .Where(x => x.UserId == userId)
-                                .OrderByDescending(x => x.Date)
-                                .ToListAsync();
 
-                responseHandler.SendJsonResponse(response, 200, new { Transactions = transactions });
+                var transactionsWithAssets = await (
+                from tx in _db.Transactions
+                join asset in _db.MarketPrices on tx.AssetId equals asset.AssetId
+                where tx.UserId == userId
+                orderby tx.Date descending 
+                select new TransactionResponseDto
+                {
+                    Id = tx.Id,
+                    UserId = tx.UserId,
+                    AssetId = tx.AssetId,
+                    AssetTicker = asset.Ticker, 
+                    AssetName = asset.Name,
+                    AssetIcon = asset.CoinIcon,
+                    Type = tx.Type.ToString().ToUpper(),
+                    Quantity = tx.Quantity,
+                    Price = tx.Price,
+                    TotalAmount = tx.TotalAmount,
+                    Date = tx.Date,
+                    Fees = tx.Fees,
+                    Notes = tx.Notes
+                }
+                ).ToListAsync();
+
+                responseHandler.SendJsonResponse(response, 200, new { transactions = transactionsWithAssets });
                 return;
 
             }
@@ -261,7 +282,7 @@ public class RequestHandler
                     return;
                 }
 
-                
+
                 var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
                 if(user == null)
                 {
@@ -367,6 +388,11 @@ public class RequestHandler
                 {
                     decimal currentPrice = pricesDict.TryGetValue(item.AssetId, out var price) ? price : item.AveragePrice;
 
+                    var assetInfo = await _db.MarketPrices.FirstOrDefaultAsync(x => x.AssetId == item.AssetId);
+                    string coinIcon = assetInfo?.CoinIcon ?? "";
+                    string assetTicker = assetInfo?.Ticker ?? "UNKNOWN";
+                    string assetName = assetInfo?.Name ?? "";
+
                     decimal currentValue = item.Quantity * currentPrice;
                     decimal unrealizedPnL = (currentPrice - item.AveragePrice) * item.Quantity;
                     
@@ -381,6 +407,9 @@ public class RequestHandler
                     assetsResult.Add(new
                     {
                         AssetId = item.AssetId,
+                        AssetTicker = assetTicker,
+                        AssetName = assetName,   
+                        CoinIcon = coinIcon,
                         Quantity = item.Quantity,
                         AveragePrice = item.AveragePrice,
                         CurrentPrice = currentPrice,

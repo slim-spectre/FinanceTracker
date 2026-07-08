@@ -5,6 +5,7 @@ import PortfolioPage from "./pages/PortfolioPage";
 import LoginPage from "./pages/LoginPage"; 
 import { Toaster } from "react-hot-toast";
 import RegisterPage from "./pages/RegisterPage";
+import TransactionsPage from "./pages/TransactionsPage";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
@@ -18,10 +19,13 @@ function App() {
           <nav className="sticky top-0 z-40 bg-white border-b border-gray-200/80 shadow-sm px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-6">
               <Link to="/portfolio" className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
-                Портфоліо
+                Portfolio
               </Link>
               <Link to="/market" className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
-                Маркет
+                Market
+              </Link>
+              <Link to="/transactions" className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                History
               </Link>
             </div>
             
@@ -29,7 +33,7 @@ function App() {
               onClick={() => { localStorage.clear(); setIsAuthenticated(false); }}
               className="text-sm font-medium text-gray-500 hover:text-rose-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-rose-50"
             >
-              Вийти
+              Log out
             </button>
           </nav>
         )}
@@ -52,6 +56,10 @@ function App() {
             <Route 
               path="/market" 
               element={isAuthenticated ? <MarketPage /> : <Navigate to="/register" />}
+            />
+            <Route 
+              path="/transactions" 
+              element={isAuthenticated ? <TransactionsPage /> : <Navigate to="/register" />}
             />
             <Route 
               path="*" 
