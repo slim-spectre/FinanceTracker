@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react"
 import FetchMarketAssets from "../services/apiService"
 import { type Asset } from "../types/Asset";
+import SearchBar from "../components/SearchBar";
 
 function MarketPage() {
   const [marketAssets, setMarketAssets] = useState<Asset[]>([]);
   const [isDownloading, setIsDownloading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [searchTerm,setSearchTerm] = useState<string>("");
+
+  const filteredAssets = marketAssets.filter
+  (asset => asset.Name.toLowerCase().includes(searchTerm.toLowerCase()) || asset.Ticker.toLowerCase().includes(searchTerm.toLowerCase()))
+
 
   useEffect(() => {
     const loadData = async () => {
@@ -26,6 +32,7 @@ function MarketPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">Crypto Market</h1>
         <p className="text-sm text-gray-500 mt-1">Live asset pricing and historical metadata.</p>
+        <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm}></SearchBar>
       </div>
 
       {isDownloading ? (
@@ -33,6 +40,7 @@ function MarketPage() {
       ) : error ? (
         <div className="text-center py-12 text-rose-600 font-medium bg-rose-50 border border-rose-200 rounded-xl max-w-xl mx-auto">Error: {error}</div>
       ) : (
+        
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-full divide-y divide-gray-200 text-left text-sm">
@@ -46,7 +54,7 @@ function MarketPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {marketAssets.map((item) => (
+                {filteredAssets.map((item) => (
                   <tr key={item.AssetId} className="hover:bg-gray-50/60 transition-colors">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">

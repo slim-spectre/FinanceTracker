@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react"
 import { fetchTransactions } from "../services/transactionService";
 import { type Transaction } from "../types/Transaction";
+import FilteredTransactions from "../components/FilterTransactions";
 
 function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isDownloading, setIsDownloading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [currentType,setCurrentType] = useState<string>("ALL");
+
+  const filteredTransactions = currentType == "ALL" ? transactions : currentType == "BUY" ? 
+  transactions.filter(t => t.Type == "BUY") : currentType == "SELL" ? transactions.filter(t => t.Type == "SELL") : [];
+
 
   useEffect(() => {
     const loadData = async ()  => {
@@ -52,6 +58,7 @@ function TransactionsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
+            <FilteredTransactions currentType={currentType} setCurrentType={setCurrentType} />
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/75 border-b border-slate-100 text-slate-500 text-xs font-semibold uppercase tracking-wider">
@@ -66,7 +73,7 @@ function TransactionsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                {transactions.map((tx) => {
+                {filteredTransactions?.map((tx) => {
                   const isBuy = tx.Type === 'BUY';
 
                   return (

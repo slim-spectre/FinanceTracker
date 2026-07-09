@@ -5,7 +5,7 @@ export interface PortfolioAsset {
   CurrentPrice: number;
   UnrealizedPnL: number;
   RoiPercentage: number;
-  assetTicker?: string; 
-  assetName?: string; 
+  AssetTicker?: string; 
+  AssetName?: string; 
   coinIcon?: string;
 }
