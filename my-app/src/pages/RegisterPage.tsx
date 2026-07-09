@@ -85,7 +85,7 @@ function RegisterPage() {
             type="text" 
             value={login} 
             onChange={handleLogin} 
-            placeholder="example@mail.com" 
+            placeholder="Dako123" 
             className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none transition-all ${
               loginError ? "border-rose-500 focus:ring-4 focus:ring-rose-500/10" : "border-gray-300 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500"
             }`}
