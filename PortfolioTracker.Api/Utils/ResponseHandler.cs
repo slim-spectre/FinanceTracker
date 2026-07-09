@@ -21,7 +21,10 @@ public class ResponseHandler
         string json = JsonSerializer.Serialize(data);
         byte[] buffer = Encoding.UTF8.GetBytes(json);
         response.ContentLength64 = buffer.Length;
+        
+        response.Headers.Add("Connection", "close");
         response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Close();
         response.Close();
     }
 }

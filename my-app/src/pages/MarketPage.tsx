@@ -2,9 +2,11 @@ import { useState, useEffect } from "react"
 import FetchMarketAssets from "../services/apiService"
 import { type Asset } from "../types/Asset";
 import SearchBar from "../components/SearchBar";
+import { fetchWatchlists,deleteWatchlist,addWatchlist } from "../services/watchlistService";
 
 function MarketPage() {
   const [marketAssets, setMarketAssets] = useState<Asset[]>([]);
+  const [watchlistIds, setWatchlistIds] = useState<number[]>([]);
   const [isDownloading, setIsDownloading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [searchTerm,setSearchTerm] = useState<string>("");
@@ -12,12 +14,35 @@ function MarketPage() {
   const filteredAssets = marketAssets.filter
   (asset => asset.Name.toLowerCase().includes(searchTerm.toLowerCase()) || asset.Ticker.toLowerCase().includes(searchTerm.toLowerCase()))
 
+  const handleWatchlistToggle = async (assetId: number) => {
+  const isAdded = watchlistIds.includes(assetId);
+
+  try {
+    if (isAdded) {
+      await deleteWatchlist({ AssetId: assetId });
+      setWatchlistIds(prev => prev.filter(id => id !== assetId));
+    } else {
+      await addWatchlist({ AssetId: assetId });
+      setWatchlistIds(prev => [...prev, assetId]);
+    }
+  } catch (ex) {
+    console.error("Watchlist error:", ex);
+  }
+};
+
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const funcResult = await FetchMarketAssets();
-        setMarketAssets(funcResult.assets || []);
+        
+        const [marketData, watchlistData] = await Promise.all([
+        FetchMarketAssets(), 
+        fetchWatchlists()  
+      ]);
+
+      setMarketAssets(marketData.assets || marketData);
+      setWatchlistIds(watchlistData.map((item: any) => item.assetId));
+
       } catch (ex) {
         setError(`${ex}`);
       } finally {
@@ -46,16 +71,33 @@ function MarketPage() {
             <table className="w-full min-w-full divide-y divide-gray-200 text-left text-sm">
               <thead className="bg-gray-50/70">
                 <tr>
+                  <th className="w-10 px-4 py-4"></th>
                   <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Name</th>
                   <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Ticker</th>
                   <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Current Price</th>
                   <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">24h Change</th>
                   <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Last Updated</th>
+                  
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {filteredAssets.map((item) => (
+                {filteredAssets.map((item) => {
+                  const isFavorite = watchlistIds.includes(item.AssetId);
+                  return (
                   <tr key={item.AssetId} className="hover:bg-gray-50/60 transition-colors">
+                    <td className="pl-6 py-4 whitespace-nowrap text-center">
+                    <button
+                      onClick={() => handleWatchlistToggle(item.AssetId)}
+                      className="text-xl focus:outline-none transition-transform active:scale-125 select-none"
+                      title={isFavorite ? "Remove from Watchlist" : "Add to Watchlist"}
+                    >
+                      {isFavorite ? (
+                        <span className="text-amber-400">★</span> 
+                      ) : (
+                        <span className="text-gray-300 hover:text-gray-400">☆</span>
+                      )}
+                    </button>
+                  </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <img 
@@ -98,7 +140,8 @@ function MarketPage() {
                       {item.LastUpdated ? new Date(item.LastUpdated).toLocaleDateString() : "—"}
                     </td>
                   </tr>
-                ))}
+                );
+                })}
               </tbody>
             </table>
           </div>

@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage";
 import { Toaster } from "react-hot-toast";
 import RegisterPage from "./pages/RegisterPage";
 import TransactionsPage from "./pages/TransactionsPage";
+import WatchlistPage from "./pages/WatchlistPage";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
@@ -26,6 +27,9 @@ function App() {
               </Link>
               <Link to="/transactions" className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
                 History
+              </Link>
+              <Link to="/watchlists" className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                Watchlists
               </Link>
             </div>
             
@@ -60,6 +64,10 @@ function App() {
             <Route 
               path="/transactions" 
               element={isAuthenticated ? <TransactionsPage /> : <Navigate to="/register" />}
+            />
+            <Route 
+              path="/watchlists" 
+              element={isAuthenticated ? <WatchlistPage /> : <Navigate to="/register" />}
             />
             <Route 
               path="*" 

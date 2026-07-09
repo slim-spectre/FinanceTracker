@@ -2,6 +2,7 @@
 using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 
 var configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -11,9 +12,15 @@ var configuration = new ConfigurationBuilder()
 
 var services = new ServiceCollection();
 services.AddSingleton<IConfiguration>(configuration);
-services.AddDbContext<FinanceDbContext>();
+var optionsBuilder = new DbContextOptionsBuilder<FinanceDbContext>();
+optionsBuilder.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
+services.AddSingleton(optionsBuilder.Options);
 services.AddTransient<RequestHandler>();
-services.AddSingleton<PriceMonitor>();
+services.AddSingleton<PriceMonitor>(sp => {
+    var options = sp.GetRequiredService<DbContextOptions<FinanceDbContext>>();
+    var config = sp.GetRequiredService<IConfiguration>();
+    return new PriceMonitor(options, config);
+});
 
 var serviceProvider = services.BuildServiceProvider();
 

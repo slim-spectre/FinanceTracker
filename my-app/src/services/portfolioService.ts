@@ -14,7 +14,7 @@ const fetchUserPortfolio = async () => {
     }
   });
   if (!response.ok) {
-    throw new Error(`Сервер повернув статус ${response.status}`);
+    throw new Error(`Server returned status ${response.status}`);
   }
 
   

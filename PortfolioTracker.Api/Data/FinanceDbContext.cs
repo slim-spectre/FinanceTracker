@@ -2,7 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 public class FinanceDbContext : DbContext
+
+
 {
+
+    public FinanceDbContext(DbContextOptions<FinanceDbContext> options) : base(options)
+    {
+    }
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<Portfolio> Portfolios => Set<Portfolio>();
     public DbSet<Transaction> Transactions => Set<Transaction>();

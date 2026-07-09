@@ -1,56 +1,47 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 
 public class PriceMonitor
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly DbContextOptions<FinanceDbContext> _options;
+    private readonly IConfiguration _configuration;
 
-    public PriceMonitor(IServiceProvider serviceProvider)
+    public PriceMonitor(DbContextOptions<FinanceDbContext> options, IConfiguration configuration)
     {
-        _serviceProvider = serviceProvider;
+        _options = options;
+        _configuration = configuration;
     }
 
     public async Task StartTracking()
     {
-        
         using var httpClient = new HttpClient();
         
-        var configuration = _serviceProvider.GetRequiredService<IConfiguration>();
-        string apiKey = configuration["CoinGecko:ApiKey"];
-        httpClient.DefaultRequestHeaders.Add("x-cg-demo-api-key", apiKey);
+        string apiKey = _configuration["CoinGecko:ApiKey"] ?? "";
+        if (!string.IsNullOrEmpty(apiKey))
+            httpClient.DefaultRequestHeaders.Add("x-cg-demo-api-key", apiKey);
+        
         httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("MyCryptoApp/1.0");
 
         while (true)
         {
             try
             {
-                Console.WriteLine($"\n[{DateTime.Now}] Запит до CoinGecko (Топ-100 монет)...");
-
-            
                 var response = await httpClient.GetStringAsync(
                     "https://api.coingecko.com/api/v3/coins/markets?per_page=100&vs_currency=usd"
                 );
                 
-              
                 var result = JsonSerializer.Deserialize<List<CoinMarketData>>(response);
 
                 if (result != null && result.Count > 0)
                 {
-                    using var scope = _serviceProvider.CreateScope();
-                    var db = scope.ServiceProvider.GetRequiredService<FinanceDbContext>();
-
+                    using var db = new FinanceDbContext(_options);
                     await SyncDatabase(db, result);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                Console.WriteLine($"Error in PriceMonitor: {ex.Message}");
             }
 
             await Task.Delay(TimeSpan.FromMinutes(5)); 
@@ -59,13 +50,6 @@ public class PriceMonitor
 
     private async Task SyncDatabase(FinanceDbContext db, List<CoinMarketData> coins)
     {
-        int maxAssetId = await db.MarketPrices.AnyAsync() 
-            ? await db.MarketPrices.MaxAsync(x => x.AssetId) 
-            : 0;
-
-        int addedCount = 0;
-        int updatedCount = 0;
-
         foreach (var coin in coins)
         {
             var dbPrice = await db.MarketPrices
@@ -78,15 +62,12 @@ public class PriceMonitor
                 dbPrice.Name = coin.Name;
                 dbPrice.CoinIcon = coin.CoinIcon;
                 dbPrice.PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent;
-
-                updatedCount++;
             }
             else
             {
-                maxAssetId++;
+
                 var newAssetPrice = new AssetMarketPrice
                 {
-                    AssetId = maxAssetId,
                     Ticker = coin.Ticker.ToUpper(),
                     Name = coin.Name,
                     CurrentPrice = coin.CurrentPrice,
@@ -94,12 +75,9 @@ public class PriceMonitor
                     CoinIcon = coin.CoinIcon,
                     PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent
                 };
-
                 await db.MarketPrices.AddAsync(newAssetPrice);
-                addedCount++;
             }
         }
-
         await db.SaveChangesAsync();
     }
 }

@@ -7,16 +7,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic;
 public class RequestHandler
 {
-    private readonly FinanceDbContext _db;
+    private readonly DbContextOptions<FinanceDbContext> _options;
 
-    public RequestHandler(FinanceDbContext db)
+    public RequestHandler(DbContextOptions<FinanceDbContext> options)
     {
-        _db = db;
+        _options = options;
     }
 
     public async Task ProcessRequestAsync(HttpListenerContext context)
     {
         Console.WriteLine($"{context.Request.HttpMethod} {context.Request.Url?.AbsolutePath} (Thread: {Environment.CurrentManagedThreadId})");
+        using var _db = new FinanceDbContext(_options);
         
         HttpListenerResponse response = context.Response;
         ResponseHandler responseHandler = new ResponseHandler();
@@ -559,7 +560,181 @@ public class RequestHandler
             }
         }
 
-        responseHandler.SendTextResponse(response, 200, "Hello from async C# server");
+        if (context.Request.Url?.AbsolutePath == "/api/watchlist" && context.Request.HttpMethod == "GET")
+        {
+            try
+            {
+                string? authHeader = context.Request.Headers["Authorization"];
+                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                {
+                    responseHandler.SendJsonResponse(response, 401, new { error = "Unauthorized: gavno token" });
+                    return;
+                }
+
+                string token = authHeader.Substring(7);
+                var principal = jwtHandler.ValidateToken(token);
+                if (principal == null)
+                {
+                    responseHandler.SendJsonResponse(response, 401, new { error = "Unauthorized: token is old" });
+                    return;
+                }
+
+                var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                {
+                    responseHandler.SendJsonResponse(response, 400, new { error = "Bad Request: invalid user id" });
+                    return;
+                }
+
+                var watchlistItems = await (
+                    from wa in _db.WatchlistAssets
+                    join w in _db.Watchlists on wa.WatchlistId equals w.Id
+                    join asset in _db.MarketPrices on wa.AssetId equals asset.AssetId
+                    where w.UserId == userId
+                    select new
+                    {
+                        assetId = asset.AssetId, 
+                        ticker = asset.Ticker,
+                        name = asset.Name,
+                        currentPrice = asset.CurrentPrice,
+                        coinIcon = asset.CoinIcon,
+                        priceChangePercentage24h = asset.PriceChangePercentage24h
+                    }
+                ).ToListAsync();
+
+                var responseData = new Dictionary<string, object> { { "watchlist", watchlistItems } };
+                responseHandler.SendJsonResponse(response, 200, responseData);
+                return;
+            }
+            catch (Exception ex)
+            {
+                responseHandler.SendJsonResponse(response, 500, new { error = ex.Message, inner = ex.InnerException?.Message });
+                return;
+            }
+        }
+
+        if (context.Request.Url?.AbsolutePath == "/api/watchlist/add" && context.Request.HttpMethod == "POST")
+        {
+            try
+            {
+                string? authHeader = context.Request.Headers["Authorization"];
+                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                {
+                    responseHandler.SendJsonResponse(response, 401, new { error = "Unauthorized" });
+                    return;
+                }
+
+                string token = authHeader.Substring(7);
+                var principal = jwtHandler.ValidateToken(token);
+                if (principal == null || !int.TryParse(principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out int userId))
+                {
+                    responseHandler.SendJsonResponse(response, 401, new { error = "Unauthorized" });
+                    return;
+                }
+
+                using var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
+                string jsonBody = await reader.ReadToEndAsync();
+                
+                var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (data == null || !data.TryGetValue("AssetId", out JsonElement assetIdElement))
+                {
+                    responseHandler.SendJsonResponse(response, 400, new { error = "Invalid JSON: AssetId is required" });
+                    return;
+                }
+
+                int assetId = assetIdElement.ValueKind == JsonValueKind.String 
+                    ? int.Parse(assetIdElement.GetString()!) 
+                    : assetIdElement.GetInt32();
+
+                var userWatchlist = await _db.Watchlists.FirstOrDefaultAsync(w => w.UserId == userId);
+                if (userWatchlist == null)
+                {
+                    userWatchlist = new Watchlist { UserId = userId };
+                    _db.Watchlists.Add(userWatchlist);
+                    await _db.SaveChangesAsync(); 
+                }
+
+                bool alreadyAdded = await _db.WatchlistAssets.AnyAsync(wa => wa.WatchlistId == userWatchlist.Id && wa.AssetId == assetId);
+                if (alreadyAdded)
+                {
+                    responseHandler.SendJsonResponse(response, 400, new { error = "Asset already in watchlist" });
+                    return;
+                }
+
+                var newWatchlistAsset = new WatchlistAsset
+                {
+                    WatchlistId = userWatchlist.Id,
+                    AssetId = assetId
+                };
+                _db.WatchlistAssets.Add(newWatchlistAsset);
+                await _db.SaveChangesAsync();
+
+                responseHandler.SendJsonResponse(response, 200, new { message = "Asset added to watchlist successfully" });
+                return;
+            }
+            catch (Exception ex)
+            {
+                responseHandler.SendJsonResponse(response, 500, new { error = ex.Message });
+                return;
+            }
+        }
+
+        if (context.Request.Url?.AbsolutePath == "/api/watchlist/remove" && context.Request.HttpMethod == "DELETE")
+        {
+            try
+            {
+                string? authHeader = context.Request.Headers["Authorization"];
+                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                {
+                    responseHandler.SendTextResponse(response, 401, "Unauthorized");
+                    return;
+                }
+
+                string token = authHeader.Substring(7);
+                var principal = jwtHandler.ValidateToken(token);
+                if (principal == null || !int.TryParse(principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out int userId))
+                {
+                    responseHandler.SendTextResponse(response, 401, "Unauthorized");
+                    return;
+                }
+
+                using var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
+                string jsonBody = await reader.ReadToEndAsync();
+                var data = JsonSerializer.Deserialize<Dictionary<string, int>>(jsonBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                
+                if (data == null || !data.TryGetValue("AssetId", out int assetId))
+                {
+                    responseHandler.SendTextResponse(response, 400, "Invalid JSON: AssetId is required");
+                    return;
+                }
+
+                var userWatchlist = await _db.Watchlists.FirstOrDefaultAsync(w => w.UserId == userId);
+                if (userWatchlist == null)
+                {
+                    responseHandler.SendTextResponse(response, 404, "Watchlist not found");
+                    return;
+                }
+
+                var itemToRemove = await _db.WatchlistAssets.FirstOrDefaultAsync(wa => wa.WatchlistId == userWatchlist.Id && wa.AssetId == assetId);
+                if (itemToRemove == null)
+                {
+                    responseHandler.SendTextResponse(response, 404, "Asset not found in watchlist");
+                    return;
+                }
+
+                _db.WatchlistAssets.Remove(itemToRemove);
+                await _db.SaveChangesAsync();
+
+                responseHandler.SendJsonResponse(response, 200, new { message = "Asset removed from watchlist" });
+                return;
+            }
+            catch (Exception ex)
+            {
+                responseHandler.SendTextResponse(response, 500, $"Internal Server Error: {ex.Message}");
+                return;
+            }
+        }
+        responseHandler.SendTextResponse(response, 404, "API endpoint not found");
     }
 
     
