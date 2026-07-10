@@ -17,9 +17,18 @@ public class RequestHandler
     public async Task ProcessRequestAsync(HttpListenerContext context)
     {
         Console.WriteLine($"{context.Request.HttpMethod} {context.Request.Url?.AbsolutePath} (Thread: {Environment.CurrentManagedThreadId})");
-        using var _db = new FinanceDbContext(_options);
-        
         HttpListenerResponse response = context.Response;
+        response.Headers.Add("Access-Control-Allow-Origin", "*");
+        response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+        if (context.Request.HttpMethod == "OPTIONS")
+        {
+            response.StatusCode = 200;
+            response.Close();
+            return; 
+        }
+        using var _db = new FinanceDbContext(_options);
         ResponseHandler responseHandler = new ResponseHandler();
         var registerValidator = new RegisterValidator();
         var loginValidator = new LoginValidator();
@@ -28,9 +37,6 @@ public class RequestHandler
 
         JwtHandler jwtHandler = new JwtHandler();
         
-        response.Headers.Add("Access-Control-Allow-Origin", "*");
-        response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
         if(context.Request.Url?.AbsolutePath == "/api/assets" && context.Request.HttpMethod == "GET")
         {
@@ -439,13 +445,6 @@ public class RequestHandler
                 responseHandler.SendTextResponse(response, 500, $"Internal Server Error: {ex.Message}");
                 return;
             }
-        }
-        
-        if (context.Request.HttpMethod == "OPTIONS")
-        {
-            response.StatusCode = 200;
-            response.Close();
-            return; 
         }
 
         if(context.Request.Url?.AbsolutePath == "/api/login" && context.Request.HttpMethod == "POST")
