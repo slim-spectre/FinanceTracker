@@ -1,5 +1,4 @@
-﻿
-using System.Net;
+﻿using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
@@ -7,29 +6,29 @@ using Microsoft.EntityFrameworkCore;
 var configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddEnvironmentVariables() 
     .Build();
 
-
 var services = new ServiceCollection();
+
+
+string connectionString = configuration.GetConnectionString("DefaultConnection") ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+
+services.AddDbContext<FinanceDbContext>(options => options.UseNpgsql(connectionString));
+
 services.AddSingleton<IConfiguration>(configuration);
-var optionsBuilder = new DbContextOptionsBuilder<FinanceDbContext>();
-optionsBuilder.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
-services.AddSingleton(optionsBuilder.Options);
 services.AddTransient<RequestHandler>();
-services.AddSingleton<PriceMonitor>(sp => {
-    var options = sp.GetRequiredService<DbContextOptions<FinanceDbContext>>();
-    var config = sp.GetRequiredService<IConfiguration>();
-    return new PriceMonitor(options, config);
-});
+services.AddSingleton<PriceMonitor>(); 
 
 var serviceProvider = services.BuildServiceProvider();
+
 using (var scope = serviceProvider.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FinanceDbContext>();
     try 
     {
         Console.WriteLine("Applying database migrations...");
-        db.Database.Migrate(); 
+        db.Database.Migrate();
         Console.WriteLine("Migrations applied successfully.");
     }
     catch (Exception ex)
@@ -37,6 +36,7 @@ using (var scope = serviceProvider.CreateScope())
         Console.WriteLine($"Error applying migrations: {ex.Message}");
     }
 }
+
 HttpListener server = new HttpListener();
 string port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 server.Prefixes.Add($"http://+:{port}/");
