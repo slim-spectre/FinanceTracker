@@ -19,9 +19,9 @@ function RegisterPage() {
     try {
       e.preventDefault();
 
-      const currentLoginError = validateLogin(login, "Not correct form of email");
-      const currentPasswordError = validatePassword(password, "Not correct form of password");
-      const currentFullNameError = validateFullName(fullName,"Not correct form of fullName")
+      const currentLoginError = validateLogin(login, "at least 8 characters");
+      const currentPasswordError = validatePassword(password, "at least 12 characters");
+      const currentFullNameError = validateFullName(fullName,"at least 2 characters")
       setLoginError(currentLoginError);
       setPasswordError(currentPasswordError);
       setFullNameError(currentFullNameError)
@@ -46,19 +46,19 @@ function RegisterPage() {
   const handleLogin = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setLogin(value);
-    setLoginError(validateLogin(value, "Not correct form of login"));
+    setLoginError(validateLogin(value, "at least 8 characters"));
   }
 
   const handlePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPassword(value);
-    setPasswordError(validatePassword(value, "Not correct form of password"));
+    setPasswordError(validatePassword(value, "at least 12 characters"));
   }
 
   const handleFullName = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setFullName(value);
-    setFullNameError(validateFullName(value, "Not correct form of fullName"));
+    setFullNameError(validateFullName(value, "at least 2 characters"));
   }
 
   return (

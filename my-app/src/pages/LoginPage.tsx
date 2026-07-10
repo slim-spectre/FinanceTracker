@@ -18,8 +18,8 @@ function LoginPage({onLoginSuccess} : ILoginProps) {
     try {
       e.preventDefault();
 
-      const currentLoginError = validateLogin(login, "Not correct form of email");
-      const currentPasswordError = validatePassword(password, "Not correct form of password");
+      const currentLoginError = validateLogin(login, "at least 8 characters");
+      const currentPasswordError = validatePassword(password, "at least 12 characters");
       setLoginError(currentLoginError);
       setPasswordError(currentPasswordError);
 
@@ -44,13 +44,13 @@ function LoginPage({onLoginSuccess} : ILoginProps) {
   const handleLogin = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setLogin(value);
-    setLoginError(validateLogin(value, "Not correct form of email"));
+    setLoginError(validateLogin(value, "at least 8 characters"));
   }
 
   const handlePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPassword(value);
-    setPasswordError(validatePassword(value, "Not correct form of password"));
+    setPasswordError(validatePassword(value, "at least 12 characters"));
   }
 
   return (
@@ -58,7 +58,7 @@ function LoginPage({onLoginSuccess} : ILoginProps) {
       <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">Welcome Back</h2>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Login / Email</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Login</label>
           <input 
             type="text" 
             value={login} 

@@ -7,6 +7,7 @@ import { Toaster } from "react-hot-toast";
 import RegisterPage from "./pages/RegisterPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import WatchlistPage from "./pages/WatchlistPage";
+import LandingPage from "./pages/LandingPage";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
@@ -44,7 +45,8 @@ function App() {
 
         <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
           <Toaster position="top-right" />
-          <Routes> 
+          <Routes>
+            <Route path="/" element={isAuthenticated ? <Navigate to="/portfolio" /> : <LandingPage />} />
             <Route 
               path="/login" 
               element={isAuthenticated ? <Navigate to="/portfolio"/> : <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />} 
@@ -71,7 +73,7 @@ function App() {
             />
             <Route 
               path="*" 
-              element={<Navigate to={isAuthenticated ? "/portfolio" : "/register"} />} 
+              element={<Navigate to="/" />} 
             />
           </Routes>
         </main>
