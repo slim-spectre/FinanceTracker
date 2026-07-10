@@ -50,37 +50,34 @@ public class PriceMonitor
 
     private async Task SyncDatabase(FinanceDbContext db, List<CoinMarketData> coins)
     {
-        var allPrices = await db.MarketPrices.ToListAsync();
-        var priceDict = allPrices.ToDictionary(p => p.Ticker.ToLower());
-
         foreach (var coin in coins)
         {
-            var ticker = coin.Ticker.ToLower();
-            
-            if (priceDict.TryGetValue(ticker, out var dbPrice))
+            var dbPrice = await db.MarketPrices
+                .FirstOrDefaultAsync(x => x.Ticker.ToLower() == coin.Ticker.ToLower());
+
+            if (dbPrice != null)
             {
-                
                 dbPrice.CurrentPrice = coin.CurrentPrice;
                 dbPrice.LastUpdated = DateTime.UtcNow;
-                dbPrice.PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent;
                 dbPrice.Name = coin.Name;
                 dbPrice.CoinIcon = coin.CoinIcon;
+                dbPrice.PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent;
             }
             else
             {
-             
-                db.MarketPrices.Add(new AssetMarketPrice 
-                { 
-                    Ticker = coin.Ticker, 
-                    CurrentPrice = coin.CurrentPrice,
+
+                var newAssetPrice = new AssetMarketPrice
+                {
+                    Ticker = coin.Ticker.ToUpper(),
                     Name = coin.Name,
+                    CurrentPrice = coin.CurrentPrice,
+                    LastUpdated = DateTime.UtcNow,
                     CoinIcon = coin.CoinIcon,
-                    PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent,
-                    LastUpdated = DateTime.UtcNow
-                });
+                    PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent
+                };
+                await db.MarketPrices.AddAsync(newAssetPrice);
             }
         }
-        
         await db.SaveChangesAsync();
     }
 }

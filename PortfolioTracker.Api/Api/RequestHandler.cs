@@ -17,18 +17,9 @@ public class RequestHandler
     public async Task ProcessRequestAsync(HttpListenerContext context)
     {
         Console.WriteLine($"{context.Request.HttpMethod} {context.Request.Url?.AbsolutePath} (Thread: {Environment.CurrentManagedThreadId})");
-        HttpListenerResponse response = context.Response;
-        response.Headers.Add("Access-Control-Allow-Origin", "*");
-        response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-        if (context.Request.HttpMethod == "OPTIONS")
-        {
-            response.StatusCode = 200;
-            response.Close();
-            return; 
-        }
         using var _db = new FinanceDbContext(_options);
+        
+        HttpListenerResponse response = context.Response;
         ResponseHandler responseHandler = new ResponseHandler();
         var registerValidator = new RegisterValidator();
         var loginValidator = new LoginValidator();
@@ -37,6 +28,9 @@ public class RequestHandler
 
         JwtHandler jwtHandler = new JwtHandler();
         
+        response.Headers.Add("Access-Control-Allow-Origin", "*");
+        response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
         if(context.Request.Url?.AbsolutePath == "/api/assets" && context.Request.HttpMethod == "GET")
         {
@@ -352,86 +346,106 @@ public class RequestHandler
         {
             try
             {
+             
                 string? authHeader = context.Request.Headers["Authorization"];
                 if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
                 {
-                    responseHandler.SendTextResponse(response, 401, "Unauthorized");
+                    responseHandler.SendTextResponse(response, 401, "Unauthorized:gavno token");
                     return;
                 }
 
+               
                 string token = authHeader.Substring(7);
+
+              
                 var principal = jwtHandler.ValidateToken(token);
                 if (principal == null)
                 {
-                    responseHandler.SendTextResponse(response, 401, "Invalid token");
+                    responseHandler.SendTextResponse(response, 401, "Unauthorizedd: very bad token man its old like my grand grand dad");
                     return;
                 }
 
                 var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                if (!int.TryParse(userIdClaim, out int userId))
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 {
-                    responseHandler.SendTextResponse(response, 400, "Invalid User ID");
+                    responseHandler.SendTextResponse(response, 400, "Bad Request: not that id of user in token maaaan");
                     return;
                 }
 
-            
                 var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
-                var userPortfolio = await _db.Portfolios.Where(p => p.UserId == userId).ToListAsync();
-                
-            
-                var assetIds = userPortfolio.Select(p => p.AssetId).Distinct().ToList();
-                var marketData = await _db.MarketPrices
-                    .Where(x => assetIds.Contains(x.AssetId))
-                    .GroupBy(x => x.AssetId)
-                    .ToDictionaryAsync(g => g.Key, g => g.First());
+
+                var userPortfolio = await _db.Portfolios
+                    .Where(p => p.UserId == userId)
+                    .ToListAsync();
+                var pricesDict = await _db.MarketPrices.ToDictionaryAsync(x => x.AssetId, x => x.CurrentPrice);
 
                 decimal totalPortfolioValue = 0;
                 decimal totalInvested = 0;
                 var assetsResult = new List<object>();
 
+
+
                 foreach (var item in userPortfolio)
                 {
-                    var assetInfo = marketData.TryGetValue(item.AssetId, out var data) ? data : null;
-                    decimal currentPrice = assetInfo?.CurrentPrice ?? item.AveragePrice;
+                    decimal currentPrice = pricesDict.TryGetValue(item.AssetId, out var price) ? price : item.AveragePrice;
+
+                    var assetInfo = await _db.MarketPrices.FirstOrDefaultAsync(x => x.AssetId == item.AssetId);
+                    string coinIcon = assetInfo?.CoinIcon ?? "";
+                    string assetTicker = assetInfo?.Ticker ?? "UNKNOWN";
+                    string assetName = assetInfo?.Name ?? "";
 
                     decimal currentValue = item.Quantity * currentPrice;
                     decimal unrealizedPnL = (currentPrice - item.AveragePrice) * item.Quantity;
-                    decimal roiPercentage = item.AveragePrice > 0 ? ((currentPrice - item.AveragePrice) / item.AveragePrice) * 100 : 0;
+                    
+                    decimal roiPercentage = item.AveragePrice > 0 
+                        ? ((currentPrice - item.AveragePrice) / item.AveragePrice) * 100 
+                        : 0;
 
+                    
                     totalPortfolioValue += currentValue;
                     totalInvested += item.TotalInvested;
 
                     assetsResult.Add(new
                     {
                         AssetId = item.AssetId,
-                        AssetTicker = assetInfo?.Ticker ?? "UNKNOWN",
-                        AssetName = assetInfo?.Name ?? "",
-                        CoinIcon = assetInfo?.CoinIcon ?? "",
+                        AssetTicker = assetTicker,
+                        AssetName = assetName,   
+                        CoinIcon = coinIcon,
                         Quantity = item.Quantity,
                         AveragePrice = item.AveragePrice,
                         CurrentPrice = currentPrice,
                         CurrentValue = currentValue,
                         UnrealizedPnL = unrealizedPnL,
                         RoiPercentage = Math.Round(roiPercentage, 2)
-                    });
-                }
+                });
+            }
+            decimal cashBalance = user?.Balance ?? 0;
+            decimal netWorth = cashBalance + totalPortfolioValue;
+            decimal totalUnrealizedPnL = totalPortfolioValue - totalInvested;
 
-                var responseObj = new
-                {
-                    NetWorth = (user?.Balance ?? 0) + totalPortfolioValue,
-                    CashBalance = user?.Balance ?? 0,
-                    TotalPortfolioValue = totalPortfolioValue,
-                    TotalUnrealizedPnL = totalPortfolioValue - totalInvested,
-                    Assets = assetsResult
-                };
-
-                responseHandler.SendJsonResponse(response, 200, responseObj);
+            var responseObj = new
+            {
+                NetWorth = netWorth,
+                CashBalance = cashBalance,
+                TotalPortfolioValue = totalPortfolioValue,
+                TotalUnrealizedPnL = totalUnrealizedPnL,
+                Assets = assetsResult
+            };
+            responseHandler.SendJsonResponse(response, 200, responseObj);
+            return;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in /api/portfolio: {ex.Message}");
-                responseHandler.SendTextResponse(response, 500, "Internal Server Error");
+                responseHandler.SendTextResponse(response, 500, $"Internal Server Error: {ex.Message}");
+                return;
             }
+        }
+        
+        if (context.Request.HttpMethod == "OPTIONS")
+        {
+            response.StatusCode = 200;
+            response.Close();
+            return; 
         }
 
         if(context.Request.Url?.AbsolutePath == "/api/login" && context.Request.HttpMethod == "POST")
@@ -541,9 +555,7 @@ public class RequestHandler
             }
             catch (Exception ex)
             {
-            
-                Console.WriteLine($"FULL ERROR: {ex.ToString()}");
-                responseHandler.SendTextResponse(response, 500, $"Internal Server Error: {ex.Message}");
+                responseHandler.SendTextResponse(response, 500, $"I am a stupid programmer sorry: {ex.Message}");
                 return;
             }
         }
