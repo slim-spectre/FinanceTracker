@@ -12,7 +12,16 @@ var configuration = new ConfigurationBuilder()
 var services = new ServiceCollection();
 
 
-string connectionString = configuration.GetConnectionString("DefaultConnection") ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+string connectionString = configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    Console.WriteLine("CRITICAL: Connection string is null or empty!");
+}
+else
+{
+    Console.WriteLine($"Attempting to connect with: {connectionString.Substring(0, 15)}..."); 
+}
 
 services.AddDbContext<FinanceDbContext>(options => options.UseNpgsql(connectionString));
 
