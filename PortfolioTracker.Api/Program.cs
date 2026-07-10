@@ -2,44 +2,47 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 var configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables() 
+    .AddEnvironmentVariables()
     .Build();
 
 var services = new ServiceCollection();
 
-
-// Заміни свій рядок отримання connectionString на цей:
-string connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")    ?? configuration.GetConnectionString("DefaultConnection");
-
-if (string.IsNullOrEmpty(connectionString))
+string GetConnectionString()
 {
-    Console.WriteLine("CRITICAL: Connection string is null or empty!");
+    var url = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") 
+              ?? configuration.GetConnectionString("DefaultConnection");
+
+    if (string.IsNullOrEmpty(url)) throw new Exception("Connection string is missing!");
+
+    if (url.StartsWith("postgresql://"))
+    {
+        var uri = new Uri(url);
+        var userInfo = uri.UserInfo.Split(':');
+        return $"Host={uri.Host};Port={uri.Port};Username={userInfo[0]};Password={userInfo[1]};Database={uri.AbsolutePath.Substring(1)};SSL Mode=Require;Trust Server Certificate=true;";
+    }
+    return url;
 }
-else
+
+services.AddDbContext<FinanceDbContext>(options => 
 {
-    Console.WriteLine($"Attempting to connect with: {connectionString.Substring(0, 15)}..."); 
-}
-services.AddDbContext<FinanceDbContext>(options => {
-    var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") 
-                           ?? configuration.GetConnectionString("DefaultConnection");
-    var builder = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
-    options.UseNpgsql(builder.ConnectionString);
+    options.UseNpgsql(GetConnectionString());
 });
 
 services.AddSingleton<IConfiguration>(configuration);
 services.AddTransient<RequestHandler>();
-services.AddSingleton<PriceMonitor>(); 
+services.AddSingleton<PriceMonitor>();
 
 var serviceProvider = services.BuildServiceProvider();
-Console.WriteLine($"FULL CONNECTION STRING: '{connectionString}'");
+
 using (var scope = serviceProvider.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FinanceDbContext>();
-    try 
+    try
     {
         Console.WriteLine("Applying database migrations...");
         db.Database.Migrate();
@@ -55,6 +58,7 @@ HttpListener server = new HttpListener();
 string port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 server.Prefixes.Add($"http://+:{port}/");
 server.Start();
+Console.WriteLine($"Server started on port {port}");
 
 var priceMonitor = serviceProvider.GetRequiredService<PriceMonitor>();
 _ = Task.Run(async () => await priceMonitor.StartTracking());
