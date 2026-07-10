@@ -25,7 +25,7 @@ services.AddSingleton<PriceMonitor>(sp => {
 var serviceProvider = services.BuildServiceProvider();
 HttpListener server = new HttpListener();
 string port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-server.Prefixes.Add($"http://*:{port}/"); 
+server.Prefixes.Add($"http://0.0.0.0:{port}/"); 
 server.Start();
 
 var priceMonitor = serviceProvider.GetRequiredService<PriceMonitor>();
