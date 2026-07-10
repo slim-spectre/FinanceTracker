@@ -23,8 +23,12 @@ else
 {
     Console.WriteLine($"Attempting to connect with: {connectionString.Substring(0, 15)}..."); 
 }
-
-services.AddDbContext<FinanceDbContext>(options => options.UseNpgsql(connectionString));
+services.AddDbContext<FinanceDbContext>(options => {
+    var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") 
+                           ?? configuration.GetConnectionString("DefaultConnection");
+    var builder = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+    options.UseNpgsql(builder.ConnectionString);
+});
 
 services.AddSingleton<IConfiguration>(configuration);
 services.AddTransient<RequestHandler>();
