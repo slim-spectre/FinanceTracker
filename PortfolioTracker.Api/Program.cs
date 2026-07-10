@@ -12,7 +12,8 @@ var configuration = new ConfigurationBuilder()
 var services = new ServiceCollection();
 
 
-string connectionString = configuration.GetConnectionString("DefaultConnection");
+// Заміни свій рядок отримання connectionString на цей:
+string connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")    ?? configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrEmpty(connectionString))
 {
@@ -30,7 +31,7 @@ services.AddTransient<RequestHandler>();
 services.AddSingleton<PriceMonitor>(); 
 
 var serviceProvider = services.BuildServiceProvider();
-
+Console.WriteLine($"FULL CONNECTION STRING: '{connectionString}'");
 using (var scope = serviceProvider.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FinanceDbContext>();
