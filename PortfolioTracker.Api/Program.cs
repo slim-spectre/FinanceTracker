@@ -23,11 +23,10 @@ services.AddSingleton<PriceMonitor>(sp => {
 });
 
 var serviceProvider = services.BuildServiceProvider();
-
-HttpListener server = new  HttpListener(); 
-server.Prefixes.Add("http://localhost:5000/");
+HttpListener server = new HttpListener();
+string port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+server.Prefixes.Add($"http://*:{port}/"); 
 server.Start();
-
 
 var priceMonitor = serviceProvider.GetRequiredService<PriceMonitor>();
 _ = Task.Run(async () => await priceMonitor.StartTracking());
