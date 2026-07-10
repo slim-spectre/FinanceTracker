@@ -13,7 +13,14 @@ var configuration = new ConfigurationBuilder()
 var services = new ServiceCollection();
 services.AddSingleton<IConfiguration>(configuration);
 var optionsBuilder = new DbContextOptionsBuilder<FinanceDbContext>();
-optionsBuilder.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
+optionsBuilder.UseNpgsql(
+    configuration.GetConnectionString("DefaultConnection"),
+    npgsqlOptions => {
+        npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorCodesToAdd: null);
+    });
 services.AddSingleton(optionsBuilder.Options);
 services.AddTransient<RequestHandler>();
 services.AddSingleton<PriceMonitor>(sp => {

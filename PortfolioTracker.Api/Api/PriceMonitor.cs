@@ -50,13 +50,15 @@ public class PriceMonitor
 
     private async Task SyncDatabase(FinanceDbContext db, List<CoinMarketData> coins)
     {
+        var existingAssets = await db.MarketPrices.ToListAsync();
+        var existingDict = existingAssets.ToDictionary(a => a.Ticker.ToLower());
+
         foreach (var coin in coins)
         {
-            var dbPrice = await db.MarketPrices
-                .FirstOrDefaultAsync(x => x.Ticker.ToLower() == coin.Ticker.ToLower());
-
-            if (dbPrice != null)
+            var tickerLower = coin.Ticker.ToLower();
+            if (existingDict.TryGetValue(tickerLower, out var dbPrice))
             {
+                
                 dbPrice.CurrentPrice = coin.CurrentPrice;
                 dbPrice.LastUpdated = DateTime.UtcNow;
                 dbPrice.Name = coin.Name;
@@ -65,7 +67,7 @@ public class PriceMonitor
             }
             else
             {
-
+                
                 var newAssetPrice = new AssetMarketPrice
                 {
                     Ticker = coin.Ticker.ToUpper(),
@@ -78,6 +80,7 @@ public class PriceMonitor
                 await db.MarketPrices.AddAsync(newAssetPrice);
             }
         }
+        
         await db.SaveChangesAsync();
     }
 }

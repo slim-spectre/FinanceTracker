@@ -554,7 +554,9 @@ public class RequestHandler
             }
             catch (Exception ex)
             {
-                responseHandler.SendTextResponse(response, 500, $"I am a stupid programmer sorry: {ex.Message}");
+            
+                Console.WriteLine($"FULL ERROR: {ex.ToString()}");
+                responseHandler.SendTextResponse(response, 500, $"Internal Server Error: {ex.Message}");
                 return;
             }
         }
