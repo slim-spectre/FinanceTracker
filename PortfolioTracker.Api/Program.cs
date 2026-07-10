@@ -13,14 +13,7 @@ var configuration = new ConfigurationBuilder()
 var services = new ServiceCollection();
 services.AddSingleton<IConfiguration>(configuration);
 var optionsBuilder = new DbContextOptionsBuilder<FinanceDbContext>();
-optionsBuilder.UseNpgsql(
-    configuration.GetConnectionString("DefaultConnection"),
-    npgsqlOptions => {
-        npgsqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(10),
-            errorCodesToAdd: null);
-    });
+optionsBuilder.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
 services.AddSingleton(optionsBuilder.Options);
 services.AddTransient<RequestHandler>();
 services.AddSingleton<PriceMonitor>(sp => {
@@ -30,6 +23,20 @@ services.AddSingleton<PriceMonitor>(sp => {
 });
 
 var serviceProvider = services.BuildServiceProvider();
+using (var scope = serviceProvider.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<FinanceDbContext>();
+    try 
+    {
+        Console.WriteLine("Applying database migrations...");
+        db.Database.Migrate(); 
+        Console.WriteLine("Migrations applied successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error applying migrations: {ex.Message}");
+    }
+}
 HttpListener server = new HttpListener();
 string port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 server.Prefixes.Add($"http://+:{port}/");

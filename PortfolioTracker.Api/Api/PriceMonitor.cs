@@ -50,34 +50,34 @@ public class PriceMonitor
 
     private async Task SyncDatabase(FinanceDbContext db, List<CoinMarketData> coins)
     {
-        var existingAssets = await db.MarketPrices.ToListAsync();
-        var existingDict = existingAssets.ToDictionary(a => a.Ticker.ToLower());
+        var allPrices = await db.MarketPrices.ToListAsync();
+        var priceDict = allPrices.ToDictionary(p => p.Ticker.ToLower());
 
         foreach (var coin in coins)
         {
-            var tickerLower = coin.Ticker.ToLower();
-            if (existingDict.TryGetValue(tickerLower, out var dbPrice))
+            var ticker = coin.Ticker.ToLower();
+            
+            if (priceDict.TryGetValue(ticker, out var dbPrice))
             {
                 
                 dbPrice.CurrentPrice = coin.CurrentPrice;
                 dbPrice.LastUpdated = DateTime.UtcNow;
+                dbPrice.PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent;
                 dbPrice.Name = coin.Name;
                 dbPrice.CoinIcon = coin.CoinIcon;
-                dbPrice.PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent;
             }
             else
             {
-                
-                var newAssetPrice = new AssetMarketPrice
-                {
-                    Ticker = coin.Ticker.ToUpper(),
-                    Name = coin.Name,
+             
+                db.MarketPrices.Add(new AssetMarketPrice 
+                { 
+                    Ticker = coin.Ticker, 
                     CurrentPrice = coin.CurrentPrice,
-                    LastUpdated = DateTime.UtcNow,
+                    Name = coin.Name,
                     CoinIcon = coin.CoinIcon,
-                    PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent
-                };
-                await db.MarketPrices.AddAsync(newAssetPrice);
+                    PriceChangePercentage24h = coin.ChangeOfPriceByDayInPercent,
+                    LastUpdated = DateTime.UtcNow
+                });
             }
         }
         
